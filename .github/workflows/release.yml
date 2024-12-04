@@ -18,6 +18,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     steps:
       - name: "checkout"
         uses: actions/checkout@v4
@@ -28,8 +29,10 @@ jobs:
         run: |
           .github/scripts/validate.sh
 
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@fc46e51fd3cb168ffb36c6d1915723c47db58abb # v0.17.7
+
       - name: release
-        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
         run: |
 
           set -e; awk 'NR==2 {print RT,$0}' RS="## [v|0-9]" OFS="" CHANGELOG.md > release_description.md
@@ -41,7 +44,6 @@ jobs:
           git tag $IMAGEVERSION
 
       - uses: goreleaser/goreleaser-action@v6          # run goreleaser
-        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
         with:
           version: '~> v2'
           args: release --clean --release-notes release_description.md
