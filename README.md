@@ -11,7 +11,7 @@ There are multiple ways how one can install DataRobot Helm Plugin
 ### Helm Plugin - install from GitHub
 
 ```sh
-helm plugin install git@github.com:datarobot-oss/helm-datarobot-plugin.git
+helm plugin install https://github.com/datarobot-oss/helm-datarobot-plugin.git
 ```
 
 
