@@ -22,7 +22,8 @@ jobs:
       - name: "checkout"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
@@ -45,14 +46,10 @@ jobs:
       - name: Docs
         run: |
           make docs
-          git status
           if [[ $(git status --porcelain) ]]; then
-            echo "Changes"
-            git config user.name "docs"
-            git config user.email "auto-docs@github.com"
-            git add . && git commit -am "[bot] Update docs" --signoff && git push
-          else
-            echo "No changes"
+            echo "Documentation is out of date, please update it"
+            git diff
+            exit 1
           fi
 
       - name: Report
