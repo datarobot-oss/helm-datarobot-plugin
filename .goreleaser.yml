@@ -1,11 +1,36 @@
+project_name: helm-datarobot
+version: 2
+
+# Prevents parallel builds from stepping on each others toes downloading modules
+before:
+  hooks:
+    - go mod tidy
+
+gomod:
+  proxy: true
+
 builds:
-- binary: helm-datarobot
-  goos:
-  - linux
-  - darwin
-  goarch:
-  - amd64
-  - arm64
-archives:
-- name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
-  format: binary
+  - binary: helm-datarobot-{{ .Os }}-{{ .Arch }}
+    no_unique_dist_dir: true
+    main: .
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+
+sboms:
+  - artifacts: binary
+
+
