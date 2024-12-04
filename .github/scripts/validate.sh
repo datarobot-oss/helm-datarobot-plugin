@@ -24,5 +24,11 @@ if git show-ref --tags | grep -q "refs/tags/$CHANGELOG_VERSION"; then
     exit 1
 fi
 
+PLUGIN_VERSION=$(grep -e  '^version' plugin.yaml | sed -e 's/^version: //')
+if [[ $PLUGIN_VERSION != $CHANGELOG_VERSION ]]; then
+    echo "found [$PLUGIN_VERSION] in plugin.yaml and mismatch with Change Log version [$CHANGELOG_VERSION]"
+    exit 1
+fi
+
 echo "Version $CHANGELOG_VERSION successfully validated"
 echo "IMAGEVERSION=$CHANGELOG_VERSION" >> $GITHUB_ENV
