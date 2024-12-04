@@ -39,9 +39,8 @@ jobs:
       - name: run unit test
         run: |
           export GOPROXY=https://proxy.golang.org
-          go install gotest.tools/gotestsum@v1.12.0
           export HELM_DATAROBOT_TEST_SKIP_DEPENDENCY_UPDATE=true
-          gotestsum --format short-verbose --junitfile testResult_unit.xml -- -count=1 -coverprofile cover.out
+          go run gotest.tools/gotestsum@v1.12.0 --format short-verbose --junitfile testResult_unit.xml -- -count=1 -coverprofile cover.out
 
       - name: Static Analysis
         run: |
