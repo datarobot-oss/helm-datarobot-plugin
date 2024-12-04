@@ -5,7 +5,8 @@ on:
       - "*"
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   actions: read
   checks: write
 
@@ -13,9 +14,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-
 jobs:
-
   run:
     runs-on: ubuntu-latest
     steps:
@@ -36,6 +35,7 @@ jobs:
           helm dependency update testdata/test-chart3
           helm dependency update testdata/test-chart2
           helm dependency update testdata/test-chart1
+
       - name: run unit test
         run: |
           export GOPROXY=https://proxy.golang.org
@@ -46,6 +46,19 @@ jobs:
       - name: Static Analysis
         run: |
           golangci-lint run --out-format junit-xml . > testResult_lint.xml
+
+      - name: Docs
+        run: |
+          make docs
+          git status
+          if [[ $(git status --porcelain) ]]; then
+            echo "Changes"
+            git config user.name "docs"
+            git config user.email "auto-docs@github.com"
+            git add . && git commit -am "[bot] Update docs" --signoff && git push
+          else
+            echo "No changes"
+          fi
 
       - name: Report
         uses: dorny/test-reporter@v1
