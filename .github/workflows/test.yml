@@ -1,8 +1,8 @@
 name: test
 on:
   pull_request:
-    paths:
-      - "*"
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -24,6 +24,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: validate
+        run: |
+          .github/scripts/validate.sh
 
       - name: Set up Helm
         uses: azure/setup-helm@v4

@@ -1,11 +1,27 @@
+project_name: helm-datarobot
+version: 2
+
 builds:
-- binary: helm-datarobot
+- binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  no_unique_dist_dir: true
+  main: .
+  mod_timestamp: "{{ .CommitTimestamp }}"
   goos:
-  - linux
-  - darwin
+    - linux
+    - windows
+    - darwin
   goarch:
-  - amd64
-  - arm64
+    - amd64
+    - arm64
+  ignore:
+    - goos: windows
+      goarch: arm64
+        
 archives:
 - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
   format: binary
+  
+sboms:
+  - artifacts: binary
+
+

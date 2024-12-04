@@ -14,6 +14,10 @@ There are multiple ways how one can install DataRobot Helm Plugin
 helm plugin install https://github.com/datarobot-oss/helm-datarobot-plugin.git
 ```
 
+```sh
+helm plugin update datarobot
+```
+
 
 ### Helm Plugin - install from a local repo
 
@@ -110,3 +114,4 @@ required packages in [Brewfile](./Brewfile).
     ```
     gotestsum
     ```
+
