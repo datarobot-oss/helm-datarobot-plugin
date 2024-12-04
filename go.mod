@@ -3,7 +3,6 @@ module github.com/datarobot-oss/helm-datarobot-plugin
 go 1.23.0
 
 require (
-	github.com/docker/docker v25.0.6+incompatible
 	github.com/google/go-containerregistry v0.20.2
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
@@ -21,6 +20,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
