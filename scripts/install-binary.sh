@@ -53,14 +53,14 @@ initOS() {
 
 
 downloadRelease() {
-  SCRIPT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   PLUGIN_VERSION=$(grep -e  '^version' $SCRIPT_DIR/../plugin.yaml | sed -e 's/^version: //')
-  echo "Downloading and installing ${PROJECT_NAME} ${PLUGIN_VERSION} ..."
-  BIN_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${PROJECT_NAME}-${OS}-${ARCH}"
-  CHECKSUM_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${PROJECT_NAME}_${PLUGIN_VERSION}_checksums.txt"
+  echo "Downloading and installing ${HELM_PLUGIN_NAME} ${PLUGIN_VERSION} ..."
+  BIN_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${HELM_PLUGIN_NAME}-${OS}-${ARCH}"
+  CHECKSUM_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${HELM_PLUGIN_NAME}_${PLUGIN_VERSION}_checksums.txt"
 
-  PLUGIN_TMP_FILE="/tmp/${PROJECT_NAME}-${PLUGIN_VERSION}-${OS}-${ARCH}"
-  CHECKSUM_TMP_FILE="/tmp/${PROJECT_NAME}_${PLUGIN_VERSION}_checksums.txt"
+  PLUGIN_TMP_FILE="/tmp/${HELM_PLUGIN_NAME}-${PLUGIN_VERSION}-${OS}-${ARCH}"
+  CHECKSUM_TMP_FILE="/tmp/${HELM_PLUGIN_NAME}_${PLUGIN_VERSION}_checksums.txt"
 
   echo "Downloading $BIN_URL"
   if type "curl" > /dev/null; then
