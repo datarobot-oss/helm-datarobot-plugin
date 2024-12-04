@@ -5,12 +5,6 @@ list images from a given chart
 ### Synopsis
 
 
-Helm charts have one shortcoming: they will not let one understand what images are
-used by specific charts. This has been leading to issues when the application
-works properly in MTSaaS or regression environments where we mount image pull
-secrets automatically, but when releasing an enterprise version, we end up
-missing some images.
-
 DataRobot introduced a custom annotation `datarobot.com/images` to solve
 this problem. This annotation lets chart developers manifest which images are
 required by the application. Those images will be included into enterprise
