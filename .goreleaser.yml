@@ -1,0 +1,11 @@
+builds:
+- binary: helm-datarobot
+  goos:
+  - linux
+  - darwin
+  goarch:
+  - amd64
+  - arm64
+archives:
+- name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  format: binary

@@ -1,0 +1,9 @@
+name: "datarobot"
+version: 1.0.1
+usage: "DataRobot Helm Plugin"
+description: "Tool for managing DataRobot Helm charts"
+command: "$HELM_PLUGIN_DIR/helm-datarobot"
+hooks:
+  install: "cd $HELM_PLUGIN_DIR; ./install-binary.sh"
+  update: "cd $HELM_PLUGIN_DIR; HELM_PLUGIN_UPDATE=1 ./install-binary.sh"
+

@@ -1,0 +1,63 @@
+name: 'ci'
+
+on:
+  pull_request:
+    branches:
+      - master
+    types: [opened, synchronize, closed]
+
+permissions:
+  id-token: write
+  packages: write
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: validate
+        run: |
+          .github/scripts/validate.sh
+
+      - name: build
+        run: |
+          docker build -t ghcr.io/$GITHUB_REPOSITORY:$GITHUB_SHA .
+          docker image list | grep $GITHUB_REPOSITORY
+
+      - name: debug
+        run: |
+          ls -lah .
+
+      - name: release
+        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker image tag ghcr.io/$GITHUB_REPOSITORY:$GITHUB_SHA ghcr.io/$GITHUB_REPOSITORY:$IMAGEVERSION
+          docker push ghcr.io/$GITHUB_REPOSITORY:$IMAGEVERSION
+
+          set -e; awk 'NR==2 {print RT,$0}' RS="## [v|0-9]" OFS="" CHANGELOG.md > release_description.md
+          cat release_description.md
+          echo $IMAGEVERSION
+
+          git config --global user.email "autobump@gha.com"
+          git config --global user.name "autobump"
+          git tag $IMAGEVERSION
+
+      - uses: goreleaser/goreleaser-action@v6          # run goreleaser
+        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+        with:
+          version: '~> v2'
+          args: release --clean --release-notes release_description.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
