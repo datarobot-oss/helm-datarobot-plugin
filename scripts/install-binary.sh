@@ -7,9 +7,6 @@ PROJECT_NAME="helm-datarobot-plugin"
 PROJECT_GH="datarobot-oss/$PROJECT_NAME"
 
 HELM_PLUGIN_NAME="helm-datarobot"
-HELM_PLUGINS=$(helm env | grep 'HELM_PLUGINS' | cut -d '=' -f2 | tr -d '"')
-HELM_HOME=$(helm env | grep 'HELM_DATA_HOME' | cut -d '=' -f2 | tr -d '"')
-HELM_PLUGIN_DIR="$HELM_HOME/plugins/$HELM_PLUGIN_NAME"
 
 if [ -n "${SKIP_BIN_INSTALL:-}" ]; then
     echo "Development mode: not downloading versioned release."
@@ -53,13 +50,14 @@ initOS() {
 
 
 downloadRelease() {
-  PLUGIN_VERSION=$(grep -e  '^version' plugin.yaml | sed -e 's/^version: //')
-  echo "Downloading and installing ${PROJECT_NAME} ${PLUGIN_VERSION} ..."
-  BIN_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${PROJECT_NAME}-${OS}-${ARCH}"
-  CHECKSUM_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${PROJECT_NAME}_${PLUGIN_VERSION}_checksums.txt"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  PLUGIN_VERSION=$(grep -e  '^version' $SCRIPT_DIR/../plugin.yaml | sed -e 's/^version: //')
+  echo "Downloading and installing ${HELM_PLUGIN_NAME} ${PLUGIN_VERSION} ..."
+  BIN_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${HELM_PLUGIN_NAME}-${OS}-${ARCH}"
+  CHECKSUM_URL="https://github.com/${PROJECT_GH}/releases/download/${PLUGIN_VERSION}/${HELM_PLUGIN_NAME}_${PLUGIN_VERSION}_checksums.txt"
 
-  PLUGIN_TMP_FILE="/tmp/${PROJECT_NAME}-${PLUGIN_VERSION}-${OS}-${ARCH}"
-  CHECKSUM_TMP_FILE="/tmp/${PROJECT_NAME}_${PLUGIN_VERSION}_checksums.txt"
+  PLUGIN_TMP_FILE="/tmp/${HELM_PLUGIN_NAME}-${PLUGIN_VERSION}-${OS}-${ARCH}"
+  CHECKSUM_TMP_FILE="/tmp/${HELM_PLUGIN_NAME}_${PLUGIN_VERSION}_checksums.txt"
 
   echo "Downloading $BIN_URL"
   if type "curl" > /dev/null; then

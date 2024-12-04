@@ -34,11 +34,7 @@ jobs:
 
       - name: release
         run: |
-
-          set -e; awk 'NR==2 {print RT,$0}' RS="## [v|0-9]" OFS="" CHANGELOG.md > release_description.md
-          cat release_description.md
           echo $IMAGEVERSION
-
           git config --global user.email "autobump@gha.com"
           git config --global user.name "autobump"
           git tag $IMAGEVERSION
