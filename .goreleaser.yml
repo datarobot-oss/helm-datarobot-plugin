@@ -7,7 +7,7 @@ before:
     - go mod tidy
 
 builds:
-  - binary: helm-datarobot-{{ .Os }}-{{ .Arch }}
+  - binary: {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}
     no_unique_dist_dir: true
     main: .
     mod_timestamp: "{{ .CommitTimestamp }}"
@@ -21,7 +21,11 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-
+        
+archives:
+- name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  format: binary
+  
 sboms:
   - artifacts: binary
 
