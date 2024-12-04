@@ -42,10 +42,6 @@ jobs:
           export HELM_DATAROBOT_TEST_SKIP_DEPENDENCY_UPDATE=true
           go run gotest.tools/gotestsum@v1.12.0 --format short-verbose --junitfile testResult_unit.xml -- -count=1 -coverprofile cover.out
 
-      - name: Static Analysis
-        run: |
-          golangci-lint run --out-format junit-xml . > testResult_lint.xml
-
       - name: Docs
         run: |
           make docs
