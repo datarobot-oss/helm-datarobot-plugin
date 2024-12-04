@@ -5,6 +5,12 @@ on:
     branches:
       - main
     types: [opened, synchronize, closed]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".goreleaser.yml"
+      - "plugin.yaml"
 
 permissions:
   id-token: write

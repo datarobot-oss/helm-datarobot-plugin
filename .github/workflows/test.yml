@@ -3,6 +3,12 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".goreleaser.yml"
+      - "plugin.yaml"
 
 permissions:
   contents: write
