@@ -65,14 +65,6 @@ Flags:
 
 please check [here](./docs/helm-datarobot.md)
 
-
-## Local development environment
-
-`pod-metering-agent` is a [Golang][golang] project. The project is implemented
-as a binary built from [main.go](./main.go).
-
-[golang]: https://go.dev/
-
 ### Prerequisites
 
 [Homebrew Bundle][homebrew-bundle] is the recommended tool for managing
@@ -115,3 +107,9 @@ required packages in [Brewfile](./Brewfile).
     gotestsum
     ```
 
+
+## Contributing
+
+Issues and PRs are welcome!
+
+[LICENSE](./LICENSE)
