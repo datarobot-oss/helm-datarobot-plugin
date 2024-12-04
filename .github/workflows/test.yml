@@ -42,6 +42,8 @@ jobs:
           export GOPROXY=https://proxy.golang.org
           export HELM_DATAROBOT_TEST_SKIP_DEPENDENCY_UPDATE=true
           go run gotest.tools/gotestsum@v1.12.0 --format short-verbose --junitfile testResult_unit.xml -- -count=1 -coverprofile cover.out
+          ls -la .
+          cat testResult_unit.xml
 
       - name: Docs
         run: |
@@ -57,6 +59,6 @@ jobs:
         if: always()
         with:
           name: unit Tests
-          path: "testResult_.*.xml"
+          path: "testResult_unit.xml"
           reporter: java-junit
           fail-on-error: true
