@@ -104,4 +104,30 @@ func TestCommandReleaseManifest(t *testing.T) {
 		// Compare the actual output with the expected output
 		assert.Equal(t, expectedOutput, stdoutBuf.String())
 	})
+	t.Run("Test test-chart4-duplicated", func(t *testing.T) {
+		rootCmd := &cobra.Command{Use: "release-manifest"}
+		rootCmd.AddCommand(releaseManifestCmd)
+
+		// Capture the output
+		var stdoutBuf bytes.Buffer
+		rootCmd.SetOut(io.Writer(&stdoutBuf))
+
+		// Set arguments for the command (simulate CLI input)
+		rootCmd.SetArgs([]string{"release-manifest", "../testdata/test-chart4", "-a", "custom/images-duplicated"})
+
+		// Execute command while capturing output
+		err := rootCmd.Execute()
+		assert.NoError(t, err)
+
+		// Expected output to compare
+		expectedOutput := `images:
+  test-image4.tar.zst:
+    source: docker.io/datarobotdev/test-image4:4.0.0
+    name: docker.io/datarobot/test-image4
+    tag: 4.0.0
+`
+
+		// Compare the actual output with the expected output
+		assert.Equal(t, expectedOutput, stdoutBuf.String())
+	})
 }

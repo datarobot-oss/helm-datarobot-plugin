@@ -24,6 +24,12 @@ version: 0.1.0
 appVersion: "1.36.1"
 
 annotations:
+  custom/images-duplicated: |
+    - name: test-image4
+      image: docker.io/datarobotdev/test-image4:4.0.0
+    - name: test-image4
+      image: docker.io/datarobotdev/test-image4:4.0.0
+
   custom/images: |
     - name: test-image4
       image: docker.io/datarobotdev/test-image4:4.0.0

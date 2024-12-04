@@ -18,8 +18,7 @@ func TestCommandSave(t *testing.T) {
 		rootCmd.SetOut(io.Writer(&stdoutBuf))
 
 		// Set arguments for the command (simulate CLI input)
-		arg := "save ../testdata/test-chart4 --output test.tgz --dry-run"
-		rootCmd.SetArgs(strings.Fields(arg))
+		rootCmd.SetArgs([]string{"save", "../testdata/test-chart4", "-a", "custom/images-duplicated", "--dry-run", "--output", "test.tgz", "-a", "datarobot.com/images"})
 
 		// Execute command while capturing output
 		err := rootCmd.Execute()
