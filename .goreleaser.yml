@@ -6,9 +6,6 @@ before:
   hooks:
     - go mod tidy
 
-gomod:
-  proxy: true
-
 builds:
   - binary: helm-datarobot-{{ .Os }}-{{ .Arch }}
     no_unique_dist_dir: true
