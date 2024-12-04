@@ -7,9 +7,6 @@ PROJECT_NAME="helm-datarobot-plugin"
 PROJECT_GH="datarobot-oss/$PROJECT_NAME"
 
 HELM_PLUGIN_NAME="helm-datarobot"
-HELM_PLUGINS=$(helm env | grep 'HELM_PLUGINS' | cut -d '=' -f2 | tr -d '"')
-HELM_HOME=$(helm env | grep 'HELM_DATA_HOME' | cut -d '=' -f2 | tr -d '"')
-HELM_PLUGIN_DIR="$HELM_HOME/plugins/$HELM_PLUGIN_NAME"
 
 if [ -n "${SKIP_BIN_INSTALL:-}" ]; then
     echo "Development mode: not downloading versioned release."
