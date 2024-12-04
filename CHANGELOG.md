@@ -6,7 +6,7 @@ All notable changes are documented in this file
 ## 0.0.5
 
 - adjust install script
-- 
+
 ## 0.0.4
 
 - adjust goreleaser to output just the binary
