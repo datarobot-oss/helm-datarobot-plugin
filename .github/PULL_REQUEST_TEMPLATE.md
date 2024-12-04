@@ -17,7 +17,5 @@
 ### Checklist
 
 <!-- [Place an '[X]' (no spaces) in all applicable fields. Please remove unrelated fields.] -->
-
-- [ ] updated `CHANGELOG.md` with new version and short description.
 - [ ] plugin version bumped in `plugin.yaml` according to [semver](http://semver.org/).
 - [ ] all tests are green
