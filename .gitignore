@@ -1,0 +1,15 @@
+# built binary
+build
+dist
+helm-datarobot
+**/*.tar.gz
+**/*.tgz
+
+# testdata Helm charts
+testdata/*/Chart.lock
+testdata/*/charts/
+
+# test results
+cover.out
+testResult_lint.xml
+testResult_unit.xml
