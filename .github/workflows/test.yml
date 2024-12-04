@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: "checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
@@ -41,6 +46,7 @@ jobs:
       - name: Static Analysis
         run: |
           golangci-lint run --out-format junit-xml . > testResult_lint.xml
+
       - name: Report
         uses: dorny/test-reporter@v1
         if: always()
