@@ -54,4 +54,5 @@ changelog:
     - title: Others
       order: 999
 
-
+release:
+  prerelease: auto
