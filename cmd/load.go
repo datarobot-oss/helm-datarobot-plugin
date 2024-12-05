@@ -129,7 +129,7 @@ Successfully pushed image: registry.example.com/test-image1:1.0.0
 			if err != nil {
 				return fmt.Errorf("failed to push Docker image to registry: %v", err)
 			}
-			fmt.Printf("Successfully pushed image %s\n", ref.Name())
+			cmd.Printf("Successfully pushed image %s\n", ref.Name())
 		}
 
 		return nil

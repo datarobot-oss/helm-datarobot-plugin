@@ -1,30 +1,15 @@
 package cmd
 
 import (
-	"bytes"
-	"io"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCommandReleaseManifest(t *testing.T) {
 	t.Run("Test test-chart1", func(t *testing.T) {
-		rootCmd := &cobra.Command{Use: "release-manifest"}
-		rootCmd.AddCommand(releaseManifestCmd)
-
-		// Capture the output
-		var stdoutBuf bytes.Buffer
-		rootCmd.SetOut(io.Writer(&stdoutBuf))
-
-		// Set arguments for the command (simulate CLI input)
-		rootCmd.SetArgs([]string{"release-manifest", "../testdata/test-chart1", "../testdata/test-chart3"})
-
-		// Execute command while capturing output
-		err := rootCmd.Execute()
+		output, err := executeCommand(rootCmd, "release-manifest", "../testdata/test-chart1", "-a", "datarobot.com/images")
 		assert.NoError(t, err)
-
 		// Expected output to compare
 		expectedOutput := `images:
   test-image1.tar.zst:
@@ -38,54 +23,25 @@ func TestCommandReleaseManifest(t *testing.T) {
   test-image3.tar.zst:
     source: docker.io/datarobotdev/test-image3:3.0.0
     name: docker.io/datarobot/test-image3
-    tag: 3.0.0
-`
-
+    tag: 3.0.0`
 		// Compare the actual output with the expected output
-		assert.Equal(t, expectedOutput, stdoutBuf.String())
+		assert.Equal(t, expectedOutput, output)
 	})
+
 	t.Run("Test test-chart4", func(t *testing.T) {
-		rootCmd := &cobra.Command{Use: "release-manifest"}
-		rootCmd.AddCommand(releaseManifestCmd)
-
-		// Capture the output
-		var stdoutBuf bytes.Buffer
-		rootCmd.SetOut(io.Writer(&stdoutBuf))
-
-		// Set arguments for the command (simulate CLI input)
-		rootCmd.SetArgs([]string{"release-manifest", "../testdata/test-chart4", "-a", "custom/images"})
-
-		// Execute command while capturing output
-		err := rootCmd.Execute()
+		output, err := executeCommand(rootCmd, "release-manifest", "../testdata/test-chart4", "-a", "custom/images")
 		assert.NoError(t, err)
-
-		// Expected output to compare
 		expectedOutput := `images:
   test-image4.tar.zst:
     source: docker.io/datarobotdev/test-image4:4.0.0
     name: docker.io/datarobot/test-image4
-    tag: 4.0.0
-`
-
-		// Compare the actual output with the expected output
-		assert.Equal(t, expectedOutput, stdoutBuf.String())
+    tag: 4.0.0`
+		assert.Equal(t, expectedOutput, output)
 	})
+
 	t.Run("Test test-chart4-datarobot", func(t *testing.T) {
-		rootCmd := &cobra.Command{Use: "release-manifest"}
-		rootCmd.AddCommand(releaseManifestCmd)
-
-		// Capture the output
-		var stdoutBuf bytes.Buffer
-		rootCmd.SetOut(io.Writer(&stdoutBuf))
-
-		// Set arguments for the command (simulate CLI input)
-		rootCmd.SetArgs([]string{"release-manifest", "../testdata/test-chart4", "-a", "datarobot.com/images"})
-
-		// Execute command while capturing output
-		err := rootCmd.Execute()
+		output, err := executeCommand(rootCmd, "release-manifest", "../testdata/test-chart4", "-a", "datarobot.com/images")
 		assert.NoError(t, err)
-
-		// Expected output to compare
 		expectedOutput := `images:
   test-image3.tar.zst:
     source: docker.io/alpine/curl:8.9.1
@@ -98,36 +54,21 @@ func TestCommandReleaseManifest(t *testing.T) {
   test-image31.tar.zst:
     source: docker.io/alpine/curl:8.10.0
     name: docker.io/datarobot/curl
-    tag: 8.10.0
-`
+    tag: 8.10.0`
 
 		// Compare the actual output with the expected output
-		assert.Equal(t, expectedOutput, stdoutBuf.String())
+		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("Test test-chart4-duplicated", func(t *testing.T) {
-		rootCmd := &cobra.Command{Use: "release-manifest"}
-		rootCmd.AddCommand(releaseManifestCmd)
-
-		// Capture the output
-		var stdoutBuf bytes.Buffer
-		rootCmd.SetOut(io.Writer(&stdoutBuf))
-
-		// Set arguments for the command (simulate CLI input)
-		rootCmd.SetArgs([]string{"release-manifest", "../testdata/test-chart4", "-a", "custom/images-duplicated"})
-
-		// Execute command while capturing output
-		err := rootCmd.Execute()
+		output, err := executeCommand(rootCmd, "release-manifest", "../testdata/test-chart4", "-a", "custom/images-duplicated")
 		assert.NoError(t, err)
-
 		// Expected output to compare
 		expectedOutput := `images:
   test-image4.tar.zst:
     source: docker.io/datarobotdev/test-image4:4.0.0
     name: docker.io/datarobot/test-image4
-    tag: 4.0.0
-`
-
+    tag: 4.0.0`
 		// Compare the actual output with the expected output
-		assert.Equal(t, expectedOutput, stdoutBuf.String())
+		assert.Equal(t, expectedOutput, output)
 	})
 }

@@ -34,6 +34,12 @@ annotations:
     - name: test-image4
       image: docker.io/datarobotdev/test-image4:4.0.0
 
+  custom/loadimages: |
+    - name: test-image
+      image: docker.io/alpine/curl:8.9.1
+    - name: test-image30
+      image: busybox:{{.Chart.AppVersion}}
+
   datarobot.com/images: |
     - name: test-image3
       image: docker.io/alpine/curl:8.9.1
