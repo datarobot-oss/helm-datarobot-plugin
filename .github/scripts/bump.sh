@@ -13,7 +13,7 @@ if git show-ref --tags | grep -q "refs/tags/$NEXT_VERSION"; then
     exit 1
 fi
 
-sed -i -e "s/version: $CURRENT_VERSION/version: $CURRENT_VERSION/" plugin.yaml
+sed -i -e "s/version: $CURRENT_VERSION/version: $NEXT_VERSION/" plugin.yaml
 
 echo "bump Version to $NEXT_VERSION"
 echo "VERSION=$NEXT_VERSION" >> $GITHUB_ENV
