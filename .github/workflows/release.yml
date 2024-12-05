@@ -40,16 +40,19 @@ jobs:
         with:
           cosign-release: 'v2.4.1'
 
-      - name: release
+      - name: bump
         run: |
-          .github/scripts/bump.sh
-          echo $VERSION
           git config --global user.email "autobump@github.com"
           git config --global user.name "autobump"
+          .github/scripts/bump.sh
           git add .
-          git commit -am "[bot] bump version $VERSION" --signoff
+          git commit -am "[bot] bump version $NEXT_VERSION" --signoff
+          
+      - name: release
+        run: |
+          echo $NEXT_VERSION
           git push --force
-          git tag $VERSION
+          git tag $NEXT_VERSION
 
       - uses: goreleaser/goreleaser-action@v6          # run goreleaser
         with:
