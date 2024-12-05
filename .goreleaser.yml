@@ -27,10 +27,6 @@ sboms:
 source:
   enabled: true
 
-template_files:
-  - src: plugin.yaml.tmpl
-    dst: plugin.yaml
-
 signs:
   - cmd: cosign
     signature: "${artifact}.sig"
