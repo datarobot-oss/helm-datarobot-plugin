@@ -7,7 +7,7 @@ git config --global url."https://oauth2:$GITHUB_TOKEN@github.com".insteadOf http
 git fetch --tags
 
 CURRENT_VERSION=$(grep -e  '^version' plugin.yaml | sed -e 's/^version: //')
-NEXT_VERSION=$(echo ${CURRENT_VERSION} | awk -F. -v OFS=. '{$NF += 1 ; print}')
+export NEXT_VERSION=$(echo ${CURRENT_VERSION} | awk -F. -v OFS=. '{$NF += 1 ; print}')
 if git show-ref --tags | grep -q "refs/tags/$NEXT_VERSION"; then
     echo "The tag $NEXT_VERSION already exists, exiting."
     exit 1
