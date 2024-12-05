@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hello-world-cronjob
+spec:
+  schedule: "*/1 * * * *"  # This schedule runs the job every minute
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello-world
+            image: "{{ .Values.imageJob.repository }}:{{ .Values.imageJob.tag | default .Chart.AppVersion }}"
+            command: ['echo', 'Hello, World!']
+          restartPolicy: Never

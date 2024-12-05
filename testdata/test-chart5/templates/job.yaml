@@ -1,0 +1,12 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello-world-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: hello-world
+        image: "{{ .Values.imageJob.repository }}:{{ .Values.imageJob.tag | default .Chart.AppVersion }}"
+        command: ['echo', 'Hello, World!']
+      restartPolicy: Never
