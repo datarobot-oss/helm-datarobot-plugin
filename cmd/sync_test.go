@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"io"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,19 +8,8 @@ import (
 
 func TestCommandSync(t *testing.T) {
 	t.Run("test-chart4", func(t *testing.T) {
-		// Capture the output
-		var stdoutBuf bytes.Buffer
-		rootCmd.SetOut(io.Writer(&stdoutBuf))
-
-		// Set arguments for the command (simulate CLI input)
-		arg := "sync ../testdata/test-chart4 -r registry.example.com -u testuser -p testpass --dry-run"
-		rootCmd.SetArgs(strings.Fields(arg))
-
-		// Execute command while capturing output
-		err := rootCmd.Execute()
+		output, err := executeCommand(rootCmd, "sync", "../testdata/test-chart4", "-r", "registry.example.com", "-u", "testuser", "-p", "testpass", "--dry-run")
 		assert.NoError(t, err)
-
-		// Expected output to compare
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.1
 [Dry-Run] Pushing image: registry.example.com/alpine/curl:stable
 
@@ -31,27 +17,14 @@ func TestCommandSync(t *testing.T) {
 [Dry-Run] Pushing image: registry.example.com/busybox:simple
 
 [Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0
-[Dry-Run] Pushing image: registry.example.com/alpine/curl:8.10.0
-
-`
-		// Compare the actual output with the expected output
-		assert.Equal(t, expectedOutput, stdoutBuf.String())
+[Dry-Run] Pushing image: registry.example.com/alpine/curl:8.10.0`
+		assert.Equal(t, expectedOutput, output)
 	})
 }
 func TestCommandSyncLive(t *testing.T) {
 	t.Run("test-chart4 ttl.sh", func(t *testing.T) {
-		// Capture the output
-		var stdoutBuf bytes.Buffer
-		rootCmd.SetOut(io.Writer(&stdoutBuf))
-
-		// Set arguments for the command (simulate CLI input)
-		arg := "sync ../testdata/test-chart4 -r ttl.sh --dry-run=false"
-		rootCmd.SetArgs(strings.Fields(arg))
-
-		// Execute command while capturing output
-		err := rootCmd.Execute()
+		output, err := executeCommand(rootCmd, "sync", "../testdata/test-chart4", "-r", "ttl.sh", "--dry-run=false")
 		assert.NoError(t, err)
-
 		// Expected output to compare
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
 Pushing image: ttl.sh/alpine/curl:stable
@@ -60,12 +33,8 @@ Pulling image: docker.io/busybox:1.36.1
 Pushing image: ttl.sh/busybox:simple
 
 Pulling image: docker.io/alpine/curl:8.10.0
-Pushing image: ttl.sh/alpine/curl:8.10.0
-
-`
-
-		// Compare the actual output with the expected output
-		assert.Equal(t, expectedOutput, stdoutBuf.String())
+Pushing image: ttl.sh/alpine/curl:8.10.0`
+		assert.Equal(t, expectedOutput, output)
 	})
 	// 	t.Run("test-chart4 ttl.sh with proxy", func(t *testing.T) {
 	// 		// Capture the output
