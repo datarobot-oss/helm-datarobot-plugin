@@ -11,6 +11,7 @@ on:
       - "go.sum"
       - ".goreleaser.yml"
       - "plugin.yaml"
+      - ".github/workflows/release.yml"
 
 permissions:
   id-token: write
@@ -47,7 +48,7 @@ jobs:
           git config --global user.name "autobump"
           git add .
           git commit -am "[bot] bump version $VERSION" --signoff
-          git push
+          git push --force
           git tag $VERSION
 
       - uses: goreleaser/goreleaser-action@v6          # run goreleaser
