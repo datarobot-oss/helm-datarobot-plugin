@@ -14,8 +14,3 @@
 
 <!-- If there's anything else that's important and relevant to your pull request, mention that information here.-->
 
-### Checklist
-
-<!-- [Place an '[X]' (no spaces) in all applicable fields. Please remove unrelated fields.] -->
-- [ ] plugin version bumped in `plugin.yaml` according to [semver](http://semver.org/).
-- [ ] all tests are green

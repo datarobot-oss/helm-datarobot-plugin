@@ -45,12 +45,12 @@ jobs:
           git config --global user.email "autobump@github.com"
           git config --global user.name "autobump"
           .github/scripts/bump.sh
-          git add .
-          git commit -am "[bot] bump version $NEXT_VERSION" --signoff
-          
+
       - name: release
         run: |
           echo $NEXT_VERSION
+          git add .
+          git commit -am "[bot] bump version $NEXT_VERSION" --signoff
           git push --force
           git tag $NEXT_VERSION
 
