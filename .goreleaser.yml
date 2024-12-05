@@ -40,7 +40,6 @@ signs:
     artifacts: all
 
 changelog:
-  use: github
   groups:
     - title: Features
       regexp: "^.*feat[(\\w)]*:+.*$"
@@ -53,6 +52,3 @@ changelog:
       order: 2
     - title: Others
       order: 999
-
-release:
-  prerelease: auto
