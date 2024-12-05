@@ -42,11 +42,14 @@ jobs:
       - name: release
         run: |
           .github/scripts/bump.sh
+          cat plugin.yaml
           echo $VERSION
-          git config --global user.email "autobump@gha.com"
+          git config --global user.email "autobump@github.com"
           git config --global user.name "autobump"
+          git add .
+          git commit -am "[bot] bump version $VERSION" --signoff
+          git push
           git tag $VERSION
-          git add . && git commit -am "[bot] bump version $VERSION" --signoff && git push
 
       - uses: goreleaser/goreleaser-action@v6          # run goreleaser
         with:
