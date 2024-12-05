@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "test-chart4.name" -}}
+{{- define "test-chart5.name" -}}
 {{- default .Chart.Name (.Values).nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "test-chart4.fullname" -}}
+{{- define "test-chart5.fullname" -}}
 {{- if (.Values).fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "test-chart4.chart" -}}
+{{- define "test-chart5.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "test-chart4.labels" -}}
-helm.sh/chart: {{ include "test-chart4.chart" . }}
-{{ include "test-chart4.selectorLabels" . }}
+{{- define "test-chart5.labels" -}}
+helm.sh/chart: {{ include "test-chart5.chart" . }}
+{{ include "test-chart5.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "test-chart4.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "test-chart4.name" . }}
+{{- define "test-chart5.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "test-chart5.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "test-chart4.serviceAccountName" -}}
+{{- define "test-chart5.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "test-chart4.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "test-chart5.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

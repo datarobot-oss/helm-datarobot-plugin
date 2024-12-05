@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -32,4 +34,14 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func executeCommand(root *cobra.Command, args ...string) (output string, err error) {
+	buf := new(bytes.Buffer)
+	root.SetOut(buf)
+	root.SetErr(buf)
+	root.SetArgs(args)
+
+	err = root.Execute()
+	return strings.TrimSpace(buf.String()), err
 }

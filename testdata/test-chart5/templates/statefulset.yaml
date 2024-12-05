@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-statefulset
+spec:
+  serviceName: "my-service"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      initContainers:
+      - name: my-init-container
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        command: ['sh', '-c', 'echo Initializing... && sleep 5']
+        volumeMounts:
+        - name: my-volume
+          mountPath: /data
+
+      containers:
+      - name: my-app-container-1
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: my-volume
+          mountPath: /usr/share/nginx/html
+
+      - name: my-app-container-2
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: my-volume
+          mountPath: /data/redis
+
+      volumes:
+      - name: my-volume
+        persistentVolumeClaim:
+          claimName: my-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
