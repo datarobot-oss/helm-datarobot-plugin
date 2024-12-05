@@ -42,7 +42,6 @@ jobs:
       - name: release
         run: |
           .github/scripts/bump.sh
-          cat plugin.yaml
           echo $VERSION
           git config --global user.email "autobump@github.com"
           git config --global user.name "autobump"
