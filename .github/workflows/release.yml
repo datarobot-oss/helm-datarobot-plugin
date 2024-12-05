@@ -31,6 +31,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: validate
+        run: |
+          .github/scripts/validate.sh
+
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@55dc4ee22412511ee8c3142cbea40418e6cec693 # v0.17.8
 
