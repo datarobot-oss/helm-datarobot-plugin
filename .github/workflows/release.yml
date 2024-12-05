@@ -43,13 +43,6 @@ jobs:
         with:
           cosign-release: 'v2.4.1'
 
-      - name: release
-        run: |
-          echo $IMAGEVERSION
-          git config --global user.email "autobump@gha.com"
-          git config --global user.name "autobump"
-          git tag $IMAGEVERSION
-
       - uses: goreleaser/goreleaser-action@v6          # run goreleaser
         with:
           version: '~> v2'
