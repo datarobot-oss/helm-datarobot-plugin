@@ -45,6 +45,8 @@ jobs:
           git config --global user.email "autobump@github.com"
           git config --global user.name "autobump"
           .github/scripts/bump.sh
+          git add .
+          git commit -am "[bot] bump version $NEXT_VERSION" --signoff
           
       - name: release
         run: |
