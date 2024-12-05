@@ -16,4 +16,4 @@ fi
 sed -i -e "s/version: $CURRENT_VERSION/version: $NEXT_VERSION/" plugin.yaml
 
 echo "bump Version to $NEXT_VERSION"
-echo "VERSION=$NEXT_VERSION" >> $GITHUB_ENV
+echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
