@@ -31,10 +31,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: validate
-        run: |
-          .github/scripts/validate.sh
-
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@55dc4ee22412511ee8c3142cbea40418e6cec693 # v0.17.8
 
@@ -42,6 +38,15 @@ jobs:
         uses: sigstore/cosign-installer@v3.7.0
         with:
           cosign-release: 'v2.4.1'
+
+      - name: release
+        run: |
+          .github/scripts/bump.sh
+          echo $VERSION
+          git config --global user.email "autobump@gha.com"
+          git config --global user.name "autobump"
+          git tag $VERSION
+          git add . && git commit -am "[bot] bump version $VERSION" --signoff && git push
 
       - uses: goreleaser/goreleaser-action@v6          # run goreleaser
         with:
