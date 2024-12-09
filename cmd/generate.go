@@ -4,26 +4,29 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/engine"
 )
 
-var validateCmd = &cobra.Command{
-	Use:          "validate",
-	Short:        "validate",
-	Aliases:      []string{"valid", "check"},
+var generateCmd = &cobra.Command{
+	Use:          "generate",
+	Short:        "generate",
+	Aliases:      []string{"gen", "genera"},
 	SilenceUsage: true,
 	Long: strings.Replace(`
 
-This command is designed to validate all images presnet in a chart are declared inside the annotation
+This command is designed to extract all images and generate the image document annotations from a given change
 
 Example:
 '''sh
-$ helm datarobot validate chart.tgz
+$ helm datarobot generate chart.tgz
 
 '''`, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
@@ -32,11 +35,6 @@ $ helm datarobot validate chart.tgz
 		chart, err := loader.Load(chartPath)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
-		}
-
-		imageDoc, err := ExtractImagesFromCharts(args)
-		if err != nil {
-			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
 
 		options := chartutil.ReleaseOptions{
@@ -61,6 +59,9 @@ $ helm datarobot validate chart.tgz
 		if err != nil {
 			return fmt.Errorf("Error Render chart %s: %v", chartPath, err)
 		}
+
+		var sb strings.Builder
+		uniqueEntries := make(map[string]struct{})
 		for _, template := range chart.Templates {
 			fileName, _ := template.Name, template.Data
 			// We only apply the following lint rules to yaml files
@@ -69,7 +70,7 @@ $ helm datarobot validate chart.tgz
 			}
 
 			renderedContent := renderedContentMap[path.Join(chart.Name(), fileName)]
-			if validateDebug {
+			if generateDebug {
 				fmt.Printf("---\n# Source: %s\n%s\n", fileName, renderedContent)
 			}
 
@@ -77,26 +78,48 @@ $ helm datarobot validate chart.tgz
 			if err != nil {
 				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", chartPath, err)
 			}
-			// Validate manifestImages against the imageDoc
-			for _, image := range manifestImages {
-				// fmt.Print(imageDoc)
-				if !isImageAllowed(image, imageDoc) {
-					return fmt.Errorf("Image not defined in as imageDoc: %s\n", image)
+
+			re := regexp.MustCompile("[^a-zA-Z0-9]+")
+
+			for _, item := range manifestImages {
+				iUri, err := image_uri.NewDockerUri(item)
+				if err != nil {
+					return err
+				}
+				uniqueKey := iUri.ImageName + "_" + re.ReplaceAllString(iUri.Tag, "")
+				// Check if the item is already in the map
+				if _, exists := uniqueEntries[uniqueKey]; !exists {
+					// If not, add it to the map and the finalSlice
+					uniqueEntries[uniqueKey] = struct{}{}
+					sb.WriteString(fmt.Sprintf("- name: %s\n", uniqueKey))
+					sb.WriteString(fmt.Sprintf("  image: %s\n", item))
 				}
 			}
 
 		}
 
-		cmd.Print("Image Doc Valid")
+		output := map[string]interface{}{
+			"annotations": map[string]string{
+				string(annotation): sb.String(),
+			},
+		}
+
+		yamlData, err := yaml.Marshal(output)
+		if err != nil {
+			return fmt.Errorf("Error converting to YAML: %v\n", err)
+		}
+
+		// Print the YAML output
+		cmd.Println(string(yamlData))
 
 		return nil
 	},
 }
 
-var validateDebug bool
+var generateDebug bool
 
 func init() {
-	rootCmd.AddCommand(validateCmd)
-	validateCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	validateCmd.Flags().BoolVarP(&validateDebug, "debug", "d", false, "debug")
+	rootCmd.AddCommand(generateCmd)
+	generateCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
+	generateCmd.Flags().BoolVarP(&generateDebug, "debug", "d", false, "debug")
 }
