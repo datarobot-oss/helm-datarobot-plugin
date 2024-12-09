@@ -1,6 +1,7 @@
 # helm-datarobot
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/datarobot-oss/helm-datarobot-plugin)](https://goreportcard.com/report/github.com/datarobot-oss/helm-datarobot-plugin)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9785/badge)](https://www.bestpractices.dev/projects/9785)
 
 
 The DataRobot Helm Plugin is a user-friendly tool specifically crafted to streamline image management for the DataRobot chart.
