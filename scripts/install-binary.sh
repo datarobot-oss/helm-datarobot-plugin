@@ -40,6 +40,7 @@ initOS() {
   case "$(uname)" in
     Darwin) OS="darwin" ;;
     Linux) OS="linux" ;;
+    *)
       echo "OS '$(uname)' not supported!" >&2
       exit 1
       ;;
