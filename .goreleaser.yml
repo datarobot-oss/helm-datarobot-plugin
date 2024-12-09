@@ -8,14 +8,10 @@ builds:
   mod_timestamp: "{{ .CommitTimestamp }}"
   goos:
     - linux
-    - windows
     - darwin
   goarch:
     - amd64
     - arm64
-  ignore:
-    - goos: windows
-      goarch: arm64
 
 archives:
 - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
