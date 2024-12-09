@@ -36,6 +36,7 @@ $ helm datarobot validate chart.tgz
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
 		if validateDebug {
+			fmt.Printf("---\n# annotation: %s\n", annotation)
 			fmt.Printf("---\n# imageDoc: %s\n", imageDoc)
 		}
 
