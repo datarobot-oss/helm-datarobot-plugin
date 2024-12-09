@@ -20,4 +20,12 @@ func TestCommandValidate(t *testing.T) {
 		expectedOutput := `Error: Image not defined in as imageDoc: busybox:1.36.1`
 		assert.Equal(t, expectedOutput, output)
 	})
+
+	t.Run("test-chart1", func(t *testing.T) {
+
+		output, err := executeCommand(rootCmd, "validate", "../testdata/test-chart1", "-a", "'datarobot.com/images'")
+		assert.NoError(t, err)
+		expectedOutput := `Image Doc Valid`
+		assert.Equal(t, expectedOutput, output)
+	})
 }
