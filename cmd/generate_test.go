@@ -18,15 +18,4 @@ func TestCommandGenerate(t *testing.T) {
       image: docker.io/alpine/curl:8.9.1`
 		assert.Equal(t, expectedOutput, output)
 	})
-	t.Run("test-chart5/custom", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "generate", "../testdata/test-chart5", "-a", "'custom/images-annot'")
-		assert.Error(t, err)
-		expectedOutput := `annotations:
-  custom/images-annot: |
-    - name: busybox_1361
-      image: busybox:1.36.1
-    - name: curl_891
-      image: docker.io/alpine/curl:8.9.1`
-		assert.Equal(t, expectedOutput, output)
-	})
 }

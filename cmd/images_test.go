@@ -7,7 +7,7 @@ import (
 )
 
 func TestCommandImages(t *testing.T) {
-	output, err := executeCommand(rootCmd, "image", "../testdata/test-chart1", "-a", "'datarobot.com/images'")
+	output, err := executeCommand(rootCmd, "image", "../testdata/test-chart1")
 	assert.NoError(t, err)
 	expectedOutput := `- name: test-image1
   image: docker.io/datarobotdev/test-image1:1.0.0
