@@ -38,15 +38,11 @@ jobs:
 
       - name: helm build dependency
         run: |
-          # This step is needed to make HELM_DATAROBOT_TEST_SKIP_DEPENDENCY_UPDATE=true work in unit tests
-          helm dependency update testdata/test-chart3
-          helm dependency update testdata/test-chart2
-          helm dependency update testdata/test-chart1
+          make pre-test
 
       - name: run unit test
         run: |
           export GOPROXY=https://proxy.golang.org
-          export HELM_DATAROBOT_TEST_SKIP_DEPENDENCY_UPDATE=true
           go run gotest.tools/gotestsum@v1.12.0 --format short-verbose --junitfile testResult_unit.xml
           ls -la .
           cat testResult_unit.xml
