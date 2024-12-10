@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/render_helper"
 	"github.com/spf13/cobra"
@@ -66,16 +68,28 @@ $ helm datarobot generate chart.tgz
 
 		}
 
-		var sb strings.Builder
-		uniqueEntries = render_helper.SortMap(uniqueEntries)
-		for key, value := range uniqueEntries {
-			sb.WriteString(fmt.Sprintf("- name: %s\n", key))
-			sb.WriteString(fmt.Sprintf("  image: %s\n", value))
+		var keys []string
+		for key := range uniqueEntries {
+			keys = append(keys, key)
+		}
+
+		// Sort the keys
+		sort.Strings(keys)
+
+		// Create a slice to hold the items
+		var items []chartutil.DatarobotImageDeclaration
+		for _, key := range keys {
+			items = append(items, chartutil.DatarobotImageDeclaration{Name: key, Image: uniqueEntries[key]})
+		}
+
+		yamlItems, err := yaml.Marshal(items)
+		if err != nil {
+			return fmt.Errorf("Error converting to YAML: %v\n", err)
 		}
 
 		output := map[string]interface{}{
 			"annotations": map[string]string{
-				string(annotation): sb.String(),
+				string(annotation): string(yamlItems),
 			},
 		}
 
