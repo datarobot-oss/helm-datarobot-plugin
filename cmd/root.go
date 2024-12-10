@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/spf13/cobra"
 )
 
@@ -36,8 +37,14 @@ func Execute() {
 	}
 }
 
-func executeCommand(root *cobra.Command, args ...string) (output string, err error) {
+func executeCommand(root *cobra.Command, cmd string) (output string, err error) {
 	buf := new(bytes.Buffer)
+
+	args, err := shellwords.Parse(cmd)
+	if err != nil {
+		return "", err
+	}
+
 	root.SetOut(buf)
 	root.SetErr(buf)
 	root.SetArgs(args)

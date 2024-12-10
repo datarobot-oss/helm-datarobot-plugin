@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/render_helper"
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/engine"
 )
 
 var validateCmd = &cobra.Command{
@@ -29,7 +27,7 @@ $ helm datarobot validate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		chart, err := loader.Load(chartPath)
+		manifest, err := render_helper.NewRenderItems(chartPath)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
@@ -38,56 +36,46 @@ $ helm datarobot validate chart.tgz
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
-
-		options := chartutil.ReleaseOptions{
-			Name:      "test-release",
-			Namespace: "test",
-		}
-		values := map[string]interface{}{}
-		caps := chartutil.DefaultCapabilities.Copy()
-
-		cvals, err := chartutil.CoalesceValues(chart, values)
-		if err != nil {
-			return fmt.Errorf("Error CoalesceValues chart %s: %v", chartPath, err)
+		if validateDebug {
+			fmt.Printf("---\n# annotation: %s\n", annotation)
+			fmt.Printf("---\n# imageDoc: %s\n", imageDoc)
 		}
 
-		valuesToRender, err := chartutil.ToRenderValuesWithSchemaValidation(chart, cvals, options, caps, true)
-		if err != nil {
-			return fmt.Errorf("Error ToRenderValuesWithSchemaValidation chart %s: %v", chartPath, err)
+		if len(imageDoc) == 0 {
+			return fmt.Errorf("imageDoc is empty")
 		}
-		var e engine.Engine
-
-		renderedContentMap, err := e.Render(chart, valuesToRender)
-		if err != nil {
-			return fmt.Errorf("Error Render chart %s: %v", chartPath, err)
-		}
-		for _, template := range chart.Templates {
-			fileName, _ := template.Name, template.Data
+		var errorImageAllowed []string
+		for fileName, template := range manifest {
 			// We only apply the following lint rules to yaml files
 			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
 				continue
 			}
 
-			renderedContent := renderedContentMap[path.Join(chart.Name(), fileName)]
 			if validateDebug {
-				fmt.Printf("---\n# Source: %s\n%s\n", fileName, renderedContent)
+				fmt.Printf("---\n# Source: %s\n%s\n", fileName, template)
 			}
 
-			manifestImages, err := ExtractImagesFromManifest(renderedContent)
+			manifestImages, err := ExtractImagesFromManifest(template)
 			if err != nil {
-				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", chartPath, err)
+				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", fileName, err)
 			}
 			// Validate manifestImages against the imageDoc
 			for _, image := range manifestImages {
-				// fmt.Print(imageDoc)
 				if !isImageAllowed(image, imageDoc) {
-					return fmt.Errorf("Image not defined in as imageDoc: %s\n", image)
+					if !SliceHas(errorImageAllowed, image) {
+						errorImageAllowed = append(errorImageAllowed, image)
+					}
 				}
 			}
 
 		}
 
-		cmd.Print("Image Doc Valid")
+		if len(errorImageAllowed) > 0 {
+			sort.Strings(errorImageAllowed)
+			return fmt.Errorf("Images not declared as ImageDoc: %v", errorImageAllowed)
+		} else {
+			cmd.Print("Image Doc Valid")
+		}
 
 		return nil
 	},

@@ -15,7 +15,13 @@ docs: build
 	@mkdir ./docs
 	@./$(APP_NAME) docs --path ./docs
 
-test:
+pre-test:
+	@echo "Pre tests..."
+	@helm dependency update testdata/test-chart3
+	@helm dependency update testdata/test-chart2
+	@helm dependency update testdata/test-chart1
+
+test: pre-test
 	@echo "Running tests..."
 	$(GO) test ./... -v
 

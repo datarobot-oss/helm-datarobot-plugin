@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	dr_chartutil "github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
@@ -14,6 +15,15 @@ import (
 func isImageAllowed(image string, imageDoc []dr_chartutil.DatarobotImageDeclaration) bool {
 	for _, im := range imageDoc {
 		if strings.TrimSpace(image) == strings.TrimSpace(im.Image) {
+			return true
+		}
+	}
+	return false
+}
+
+func SliceHas(slice []string, str string) bool {
+	for _, item := range slice {
+		if item == str {
 			return true
 		}
 	}
@@ -68,5 +78,7 @@ func ExtractImagesFromManifest(manifest string) ([]string, error) {
 	for _, container := range cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers {
 		manifestImages = append(manifestImages, container.Image)
 	}
+
+	sort.Strings(manifestImages)
 	return manifestImages, nil
 }

@@ -2,17 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/render_helper"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/engine"
 )
 
 var generateCmd = &cobra.Command{
@@ -32,55 +31,28 @@ $ helm datarobot generate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		chart, err := loader.Load(chartPath)
+		manifest, err := render_helper.NewRenderItems(chartPath)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
 
-		options := chartutil.ReleaseOptions{
-			Name:      "test-release",
-			Namespace: "test",
-		}
-		values := map[string]interface{}{}
-		caps := chartutil.DefaultCapabilities.Copy()
-
-		cvals, err := chartutil.CoalesceValues(chart, values)
-		if err != nil {
-			return fmt.Errorf("Error CoalesceValues chart %s: %v", chartPath, err)
-		}
-
-		valuesToRender, err := chartutil.ToRenderValuesWithSchemaValidation(chart, cvals, options, caps, true)
-		if err != nil {
-			return fmt.Errorf("Error ToRenderValuesWithSchemaValidation chart %s: %v", chartPath, err)
-		}
-		var e engine.Engine
-
-		renderedContentMap, err := e.Render(chart, valuesToRender)
-		if err != nil {
-			return fmt.Errorf("Error Render chart %s: %v", chartPath, err)
-		}
-
-		var sb strings.Builder
-		uniqueEntries := make(map[string]struct{})
-		for _, template := range chart.Templates {
-			fileName, _ := template.Name, template.Data
-			// We only apply the following lint rules to yaml files
+		uniqueEntries := make(map[string]string)
+		for fileName, template := range manifest {
+			// // We only apply the following lint rules to yaml files
 			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
 				continue
 			}
 
-			renderedContent := renderedContentMap[path.Join(chart.Name(), fileName)]
 			if generateDebug {
-				fmt.Printf("---\n# Source: %s\n%s\n", fileName, renderedContent)
+				fmt.Printf("---\n# Source: %s\n%s\n", fileName, template)
 			}
 
-			manifestImages, err := ExtractImagesFromManifest(renderedContent)
+			manifestImages, err := ExtractImagesFromManifest(template)
 			if err != nil {
-				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", chartPath, err)
+				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", fileName, err)
 			}
 
 			re := regexp.MustCompile("[^a-zA-Z0-9]+")
-
 			for _, item := range manifestImages {
 				iUri, err := image_uri.NewDockerUri(item)
 				if err != nil {
@@ -90,17 +62,34 @@ $ helm datarobot generate chart.tgz
 				// Check if the item is already in the map
 				if _, exists := uniqueEntries[uniqueKey]; !exists {
 					// If not, add it to the map and the finalSlice
-					uniqueEntries[uniqueKey] = struct{}{}
-					sb.WriteString(fmt.Sprintf("- name: %s\n", uniqueKey))
-					sb.WriteString(fmt.Sprintf("  image: %s\n", item))
+					uniqueEntries[uniqueKey] = item
 				}
 			}
 
 		}
 
+		var keys []string
+		for key := range uniqueEntries {
+			keys = append(keys, key)
+		}
+
+		// Sort the keys
+		sort.Strings(keys)
+
+		// Create a slice to hold the items
+		var items []chartutil.DatarobotImageDeclaration
+		for _, key := range keys {
+			items = append(items, chartutil.DatarobotImageDeclaration{Name: key, Image: uniqueEntries[key]})
+		}
+
+		yamlItems, err := yaml.Marshal(items)
+		if err != nil {
+			return fmt.Errorf("Error converting to YAML: %v\n", err)
+		}
+
 		output := map[string]interface{}{
 			"annotations": map[string]string{
-				string(annotation): sb.String(),
+				string(annotation): string(yamlItems),
 			},
 		}
 
