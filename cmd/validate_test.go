@@ -22,7 +22,7 @@ func TestCommandValidate(t *testing.T) {
 	t.Run("test-chart5/error", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "validate ../testdata/test-chart5 -a \"custom/images-wrong\"")
 		assert.Error(t, err)
-		expectedOutput := `Error: Image not defined in as imageDoc: busybox:1.36.1`
+		expectedOutput := `Error: Image not defined in as imageDoc: docker.io/alpine/curl:8.9.1`
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("test-chart5/empty", func(t *testing.T) {
