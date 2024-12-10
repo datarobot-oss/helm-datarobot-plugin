@@ -11,10 +11,9 @@ on:
       - "plugin.yaml"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
   actions: read
-  checks: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,18 +33,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
-          version: v3.12.1
-
-      - name: helm build dependency
-        run: |
-          make pre-test
-
-      - name: run unit test
-        run: |
-          export GOPROXY=https://proxy.golang.org
-          go run gotest.tools/gotestsum@v1.12.0 --format short-verbose --junitfile testResult_unit.xml
-          ls -la .
-          cat testResult_unit.xml
+          version: v3.16.3
 
       - name: Docs
         run: |
@@ -56,11 +44,6 @@ jobs:
             exit 1
           fi
 
-      - name: Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: unit Tests
-          path: "testResult_unit.xml"
-          reporter: java-junit
-          fail-on-error: true
+      - name: run unit test
+        run: |
+          make test

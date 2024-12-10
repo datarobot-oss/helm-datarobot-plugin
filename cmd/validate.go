@@ -41,7 +41,7 @@ $ helm datarobot validate chart.tgz
 		}
 
 		if len(imageDoc) == 0 {
-			return fmt.Errorf("Error imageDoc is empty")
+			return fmt.Errorf("imageDoc is empty")
 		}
 
 		for fileName, template := range manifest {
