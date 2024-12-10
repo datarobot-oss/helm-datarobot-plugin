@@ -9,7 +9,7 @@ builds:
   main: .
   mod_timestamp: "{{ .CommitTimestamp }}"
   env:
-  - CGO_ENABLED=1
+  - CGO_ENABLED=0
   goos:
   - linux
   goarch:
@@ -20,8 +20,6 @@ builds:
   no_unique_dist_dir: true
   main: .
   mod_timestamp: "{{ .CommitTimestamp }}"
-  env:
-  - CGO_ENABLED=0
   goos:
   - darwin
   goarch:
