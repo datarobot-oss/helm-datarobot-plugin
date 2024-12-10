@@ -3,6 +3,7 @@ package render_helper
 import (
 	"fmt"
 	"maps"
+	"sort"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -50,5 +51,26 @@ func NewRenderItems(chartPath string) (map[string]string, error) {
 		maps.Copy(renderItems, renderedContentMapChild)
 	}
 
-	return renderItems, nil
+	return SortMap(renderItems), nil
+}
+
+// SortMap takes a map[string]string and returns a new map[string]string
+// with the key-value pairs sorted by keys.
+func SortMap(m map[string]string) map[string]string {
+	// Step 1: Extract keys
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	// Step 2: Sort keys
+	sort.Strings(keys)
+
+	// Step 3: Create a new map to hold the sorted key-value pairs
+	sortedMap := make(map[string]string)
+	for _, key := range keys {
+		sortedMap[key] = m[key]
+	}
+
+	return sortedMap
 }
