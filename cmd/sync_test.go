@@ -8,7 +8,7 @@ import (
 
 func TestCommandSync(t *testing.T) {
 	t.Run("test-chart4", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync", "../testdata/test-chart4", "-r", "registry.example.com", "-u", "testuser", "-p", "testpass", "--dry-run")
+		output, err := executeCommand(rootCmd, "sync ../testdata/test-chart4 -r registry.example.com -u testuser -p testpass --dry-run")
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.1
 [Dry-Run] Pushing image: registry.example.com/alpine/curl:stable
@@ -23,7 +23,7 @@ func TestCommandSync(t *testing.T) {
 }
 func TestCommandSyncLive(t *testing.T) {
 	t.Run("test-chart4 ttl.sh", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync", "../testdata/test-chart4", "-r", "ttl.sh", "--dry-run=false")
+		output, err := executeCommand(rootCmd, "sync ../testdata/test-chart4 -r ttl.sh --dry-run=false")
 		assert.NoError(t, err)
 		// Expected output to compare
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1

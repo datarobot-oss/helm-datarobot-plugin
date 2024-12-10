@@ -8,7 +8,7 @@ import (
 
 func TestCommandGenerate(t *testing.T) {
 	t.Run("test-chart5", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "generate", "../testdata/test-chart5")
+		output, err := executeCommand(rootCmd, "generate ../testdata/test-chart5")
 		assert.NoError(t, err)
 		expectedOutput := `annotations:
   datarobot.com/images: |
