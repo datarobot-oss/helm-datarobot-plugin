@@ -2,6 +2,7 @@ project_name: helm-datarobot
 version: 2
 
 builds:
+
 - id: linux-build
   binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
   no_unique_dist_dir: true
