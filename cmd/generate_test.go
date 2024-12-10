@@ -12,10 +12,10 @@ func TestCommandGenerate(t *testing.T) {
 		assert.NoError(t, err)
 		expectedOutput := `annotations:
   datarobot.com/images: |
-    - name: busybox_1361
-      image: busybox:1.36.1
     - name: curl_891
-      image: docker.io/alpine/curl:8.9.1`
+      image: docker.io/alpine/curl:8.9.1
+    - name: busybox_1361
+      image: busybox:1.36.1`
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("test-chart1", func(t *testing.T) {
@@ -23,12 +23,12 @@ func TestCommandGenerate(t *testing.T) {
 		assert.NoError(t, err)
 		expectedOutput := `annotations:
   datarobot.com/images: |
-    - name: test-image3_300
-      image: docker.io/datarobotdev/test-image3:3.0.0
+    - name: test-image1_100
+      image: docker.io/datarobotdev/test-image1:1.0.0
     - name: test-image2_200
       image: docker.io/datarobotdev/test-image2:2.0.0
-    - name: test-image1_100
-      image: docker.io/datarobotdev/test-image1:1.0.0`
+    - name: test-image3_300
+      image: docker.io/datarobotdev/test-image3:3.0.0`
 		assert.Equal(t, expectedOutput, output)
 	})
 }

@@ -34,8 +34,7 @@ $ helm datarobot generate chart.tgz
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
 
-		var sb strings.Builder
-		uniqueEntries := make(map[string]struct{})
+		uniqueEntries := make(map[string]string)
 		for fileName, template := range manifest {
 			// // We only apply the following lint rules to yaml files
 			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
@@ -52,7 +51,6 @@ $ helm datarobot generate chart.tgz
 			}
 
 			re := regexp.MustCompile("[^a-zA-Z0-9]+")
-
 			for _, item := range manifestImages {
 				iUri, err := image_uri.NewDockerUri(item)
 				if err != nil {
@@ -62,12 +60,17 @@ $ helm datarobot generate chart.tgz
 				// Check if the item is already in the map
 				if _, exists := uniqueEntries[uniqueKey]; !exists {
 					// If not, add it to the map and the finalSlice
-					uniqueEntries[uniqueKey] = struct{}{}
-					sb.WriteString(fmt.Sprintf("- name: %s\n", uniqueKey))
-					sb.WriteString(fmt.Sprintf("  image: %s\n", item))
+					uniqueEntries[uniqueKey] = item
 				}
 			}
 
+		}
+
+		var sb strings.Builder
+		uniqueEntries = render_helper.SortMap(uniqueEntries)
+		for key, value := range uniqueEntries {
+			sb.WriteString(fmt.Sprintf("- name: %s\n", key))
+			sb.WriteString(fmt.Sprintf("  image: %s\n", value))
 		}
 
 		output := map[string]interface{}{

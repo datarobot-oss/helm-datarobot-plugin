@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	dr_chartutil "github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
@@ -68,5 +69,7 @@ func ExtractImagesFromManifest(manifest string) ([]string, error) {
 	for _, container := range cronJob.Spec.JobTemplate.Spec.Template.Spec.Containers {
 		manifestImages = append(manifestImages, container.Image)
 	}
+
+	sort.Strings(manifestImages)
 	return manifestImages, nil
 }
