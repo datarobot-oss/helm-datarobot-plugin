@@ -1,5 +1,5 @@
 name: "datarobot"
-version: 0.0.19
+version: 0.0.20
 usage: "DataRobot Helm Plugin"
 description: "Tool for managing DataRobot Helm charts"
 command: "$HELM_PLUGIN_DIR/bin/helm-datarobot-plugin"
