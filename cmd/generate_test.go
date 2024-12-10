@@ -32,4 +32,5 @@ func TestCommandGenerate(t *testing.T) {
       image: docker.io/datarobotdev/test-image3:3.0.0`
 		assert.Equal(t, expectedOutput, output)
 	})
+
 }
