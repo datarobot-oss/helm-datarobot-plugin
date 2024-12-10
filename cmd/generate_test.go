@@ -18,6 +18,7 @@ func TestCommandGenerate(t *testing.T) {
       image: docker.io/alpine/curl:8.9.1`
 		assert.Equal(t, expectedOutput, output)
 	})
+
 	t.Run("test-chart1", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "generate ../testdata/test-chart1")
 		assert.NoError(t, err)
