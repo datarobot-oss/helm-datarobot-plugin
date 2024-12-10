@@ -21,6 +21,15 @@ func isImageAllowed(image string, imageDoc []dr_chartutil.DatarobotImageDeclarat
 	return false
 }
 
+func SliceHas(slice []string, str string) bool {
+	for _, item := range slice {
+		if item == str {
+			return true
+		}
+	}
+	return false
+}
+
 func ExtractImagesFromManifest(manifest string) ([]string, error) {
 	var manifestImages []string
 

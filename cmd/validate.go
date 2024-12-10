@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/render_helper"
@@ -43,7 +44,7 @@ $ helm datarobot validate chart.tgz
 		if len(imageDoc) == 0 {
 			return fmt.Errorf("imageDoc is empty")
 		}
-
+		var errorImageAllowed []string
 		for fileName, template := range manifest {
 			// We only apply the following lint rules to yaml files
 			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
@@ -60,15 +61,21 @@ $ helm datarobot validate chart.tgz
 			}
 			// Validate manifestImages against the imageDoc
 			for _, image := range manifestImages {
-				// fmt.Print(imageDoc)
 				if !isImageAllowed(image, imageDoc) {
-					return fmt.Errorf("Image not defined in as imageDoc: %s\n", image)
+					if !SliceHas(errorImageAllowed, image) {
+						errorImageAllowed = append(errorImageAllowed, image)
+					}
 				}
 			}
 
 		}
 
-		cmd.Print("Image Doc Valid")
+		if len(errorImageAllowed) > 0 {
+			sort.Strings(errorImageAllowed)
+			return fmt.Errorf("Images not declared as ImageDoc: %v", errorImageAllowed)
+		} else {
+			cmd.Print("Image Doc Valid")
+		}
 
 		return nil
 	},
