@@ -40,6 +40,10 @@ $ helm datarobot validate chart.tgz
 			fmt.Printf("---\n# imageDoc: %s\n", imageDoc)
 		}
 
+		if len(imageDoc) == 0 {
+			return fmt.Errorf("Error imageDoc is empty")
+		}
+
 		for fileName, template := range manifest {
 			// We only apply the following lint rules to yaml files
 			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
