@@ -2,13 +2,28 @@ project_name: helm-datarobot
 version: 2
 
 builds:
-- binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+- id: linux-build
+  binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
   no_unique_dist_dir: true
   main: .
   mod_timestamp: "{{ .CommitTimestamp }}"
+  env:
+  - CGO_ENABLED=1
   goos:
-    - linux
-    - darwin
+  - linux
+  goarch:
+    - amd64
+    - arm64
+    
+- id: darwin-build
+  binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  no_unique_dist_dir: true
+  main: .
+  mod_timestamp: "{{ .CommitTimestamp }}"
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - darwin
   goarch:
     - amd64
     - arm64
