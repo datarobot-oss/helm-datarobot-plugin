@@ -65,7 +65,7 @@ $ helm datarobot validate chart.tgz
 			}
 			// Validate manifestImages against the imageDoc
 			for _, image := range manifestImages {
-				if !isImageAllowed(image, imageDoc) {
+				if !isImageDeclared(image, imageDoc) {
 					if !SliceHas(errorImageAllowed, image) {
 						errorImageAllowed = append(errorImageAllowed, image)
 					}
@@ -76,7 +76,7 @@ $ helm datarobot validate chart.tgz
 
 		if len(errorImageAllowed) > 0 {
 			sort.Strings(errorImageAllowed)
-			return fmt.Errorf("Images not declared as ImageDoc: %v", errorImageAllowed)
+			return fmt.Errorf("Images not declared as ImageDoc:\n%s", strings.Join(errorImageAllowed, "\n"))
 		} else {
 			cmd.Print("Image Doc Valid")
 		}

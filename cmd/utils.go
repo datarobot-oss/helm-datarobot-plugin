@@ -11,8 +11,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// isImageAllowed checks if the image is in the allowed list
-func isImageAllowed(image string, imageDoc []dr_chartutil.DatarobotImageDeclaration) bool {
+// isImageDeclared checks if the image is in the declared imagedoc list
+func isImageDeclared(image string, imageDoc []dr_chartutil.DatarobotImageDeclaration) bool {
 	for _, im := range imageDoc {
 		if strings.TrimSpace(image) == strings.TrimSpace(im.Image) {
 			return true

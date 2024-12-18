@@ -44,18 +44,17 @@ func NewRenderItems(chartPath string) (map[string]string, error) {
 	}
 
 	caps := chartutil.DefaultCapabilities.Copy()
-
 	cvals, err := chartutil.CoalesceValues(loadedChart, finalValues)
 	if err != nil {
 		return nil, fmt.Errorf("Error CoalesceValues chart %s: %v", chartPath, err)
 	}
+
 	valuesToRender, err := chartutil.ToRenderValuesWithSchemaValidation(loadedChart, cvals, options, caps, true)
 	if err != nil {
 		return nil, fmt.Errorf("Error ToRenderValuesWithSchemaValidation chart %s: %v", chartPath, err)
 	}
 
 	renderedContentMap, err := engine.Render(loadedChart, valuesToRender)
-
 	if err != nil {
 		return nil, fmt.Errorf("Error Render chart %s: %v", chartPath, err)
 	}
