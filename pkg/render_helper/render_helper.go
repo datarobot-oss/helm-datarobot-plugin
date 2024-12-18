@@ -55,7 +55,6 @@ func NewRenderItems(chartPath string, valueFiles []string, setValues []string) (
 		return nil, fmt.Errorf("Error ToRenderValuesWithSchemaValidation chart %s: %v", chartPath, err)
 	}
 
-	fmt.Println(valuesToRender)
 	renderedContentMap, err := engine.Render(loadedChart, valuesToRender)
 	if err != nil {
 		return nil, fmt.Errorf("Error Render chart %s: %v", chartPath, err)
