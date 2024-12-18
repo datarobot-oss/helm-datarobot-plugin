@@ -31,7 +31,7 @@ $ helm datarobot generate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		manifest, err := render_helper.NewRenderItems(chartPath)
+		manifest, err := render_helper.NewRenderItems(chartPath, g.ValueFiles, g.Values)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
@@ -43,7 +43,7 @@ $ helm datarobot generate chart.tgz
 				continue
 			}
 
-			if generateDebug {
+			if g.Debug {
 				fmt.Printf("---\n# Source: %s\n%s\n", fileName, template)
 			}
 
@@ -105,10 +105,18 @@ $ helm datarobot generate chart.tgz
 	},
 }
 
-var generateDebug bool
+type generateInput struct {
+	Values     []string
+	ValueFiles []string
+	Debug      bool
+}
+
+var g generateInput
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
 	generateCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	generateCmd.Flags().BoolVarP(&generateDebug, "debug", "d", false, "debug")
+	generateCmd.Flags().BoolVarP(&g.Debug, "debug", "d", false, "debug")
+	generateCmd.Flags().StringSliceVarP(&g.ValueFiles, "values", "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
+	generateCmd.Flags().StringArrayVar(&g.Values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 }

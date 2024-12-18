@@ -10,7 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/engine"
 )
 
-func NewRenderItems(chartPath string) (map[string]string, error) {
+func NewRenderItems(chartPath string, valueFiles []string, setValues []string) (map[string]string, error) {
 	loadedChart, err := loader.Load(chartPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading chart %s: %v", chartPath, err)
@@ -38,13 +38,14 @@ func NewRenderItems(chartPath string) (map[string]string, error) {
 		Name:      "test-release",
 		Namespace: "test",
 	}
-	finalValues := map[string]interface{}{
-		"Values":  loadedChart.Values,
-		"Release": map[string]string{"Namespace": "namespace"},
+
+	values, err := loadValues(valueFiles, setValues)
+	if err != nil {
+		return nil, err
 	}
 
 	caps := chartutil.DefaultCapabilities.Copy()
-	cvals, err := chartutil.CoalesceValues(loadedChart, finalValues)
+	cvals, err := chartutil.CoalesceValues(loadedChart, values)
 	if err != nil {
 		return nil, fmt.Errorf("Error CoalesceValues chart %s: %v", chartPath, err)
 	}
@@ -54,15 +55,10 @@ func NewRenderItems(chartPath string) (map[string]string, error) {
 		return nil, fmt.Errorf("Error ToRenderValuesWithSchemaValidation chart %s: %v", chartPath, err)
 	}
 
+	fmt.Println(valuesToRender)
 	renderedContentMap, err := engine.Render(loadedChart, valuesToRender)
 	if err != nil {
 		return nil, fmt.Errorf("Error Render chart %s: %v", chartPath, err)
 	}
 	return renderedContentMap, nil
-}
-
-func isChartDirectory(dir string) bool {
-	chartYamlPath := path.Join(dir, "Chart.yaml")
-	_, err := os.Stat(chartYamlPath)
-	return err == nil
 }

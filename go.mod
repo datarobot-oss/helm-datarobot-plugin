@@ -4,6 +4,7 @@ go 1.23.0
 
 require (
 	github.com/google/go-containerregistry v0.20.2
+	github.com/imdario/mergo v0.3.16
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0

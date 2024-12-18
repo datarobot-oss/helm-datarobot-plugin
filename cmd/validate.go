@@ -28,7 +28,7 @@ $ helm datarobot validate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		manifest, err := render_helper.NewRenderItems(chartPath)
+		manifest, err := render_helper.NewRenderItems(chartPath, v.ValueFiles, v.Values)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
@@ -37,7 +37,7 @@ $ helm datarobot validate chart.tgz
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
-		if validateDebug {
+		if v.Debug {
 			fmt.Printf("---\n# annotation: %s\n", annotation)
 			b, err := json.MarshalIndent(imageDoc, "", "  ")
 			if err == nil {
@@ -55,7 +55,7 @@ $ helm datarobot validate chart.tgz
 				continue
 			}
 
-			if validateDebug {
+			if v.Debug {
 				fmt.Printf("---\n# Source: %s\n%s\n", fileName, template)
 			}
 
@@ -85,10 +85,19 @@ $ helm datarobot validate chart.tgz
 	},
 }
 
-var validateDebug bool
+type validateInput struct {
+	Values     []string
+	ValueFiles []string
+	Debug      bool
+}
+
+var v validateInput
 
 func init() {
 	rootCmd.AddCommand(validateCmd)
 	validateCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	validateCmd.Flags().BoolVarP(&validateDebug, "debug", "d", false, "debug")
+	validateCmd.Flags().BoolVarP(&v.Debug, "debug", "d", false, "debug")
+	validateCmd.Flags().StringSliceVarP(&v.ValueFiles, "values", "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
+	validateCmd.Flags().StringArrayVar(&v.Values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+
 }
