@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -38,7 +39,10 @@ $ helm datarobot validate chart.tgz
 		}
 		if validateDebug {
 			fmt.Printf("---\n# annotation: %s\n", annotation)
-			fmt.Printf("---\n# imageDoc: %s\n", imageDoc)
+			b, err := json.MarshalIndent(imageDoc, "", "  ")
+			if err == nil {
+				fmt.Println(string(b))
+			}
 		}
 
 		if len(imageDoc) == 0 {

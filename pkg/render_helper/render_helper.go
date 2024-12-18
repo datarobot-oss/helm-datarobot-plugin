@@ -2,8 +2,8 @@ package render_helper
 
 import (
 	"fmt"
-	"maps"
-	"sort"
+	"os"
+	"path"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -11,66 +11,59 @@ import (
 )
 
 func NewRenderItems(chartPath string) (map[string]string, error) {
-	renderItems := make(map[string]string)
-	chart, err := loader.Load(chartPath)
+	loadedChart, err := loader.Load(chartPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading chart %s: %v", chartPath, err)
+	}
+
+	subChartsPath := path.Join(chartPath, "charts")
+	if fi, err := os.Stat(subChartsPath); err == nil && fi.IsDir() {
+		subCharts, err := os.ReadDir(subChartsPath)
+		if err == nil && len(subCharts) > 0 {
+			for _, subChart := range subCharts {
+				subChartPath := path.Join(subChartsPath, subChart.Name())
+				if !subChart.IsDir() || !isChartDirectory(subChartPath) {
+					continue
+				}
+				loadedSubChart, err := loader.Load(path.Join(subChartsPath, subChart.Name()))
+				if err != nil {
+					return nil, fmt.Errorf("Error subChartsPath %s: %v", subChartPath, err)
+				}
+				loadedChart.Values[subChart.Name()] = loadedSubChart.Values
+			}
+		}
 	}
 
 	options := chartutil.ReleaseOptions{
 		Name:      "test-release",
 		Namespace: "test",
 	}
-	values := map[string]interface{}{}
+	finalValues := map[string]interface{}{
+		"Values":  loadedChart.Values,
+		"Release": map[string]string{"Namespace": "namespace"},
+	}
+
 	caps := chartutil.DefaultCapabilities.Copy()
 
-	cvals, err := chartutil.CoalesceValues(chart, values)
+	cvals, err := chartutil.CoalesceValues(loadedChart, finalValues)
 	if err != nil {
 		return nil, fmt.Errorf("Error CoalesceValues chart %s: %v", chartPath, err)
 	}
-
-	valuesToRender, err := chartutil.ToRenderValuesWithSchemaValidation(chart, cvals, options, caps, true)
+	valuesToRender, err := chartutil.ToRenderValuesWithSchemaValidation(loadedChart, cvals, options, caps, true)
 	if err != nil {
 		return nil, fmt.Errorf("Error ToRenderValuesWithSchemaValidation chart %s: %v", chartPath, err)
 	}
-	var e engine.Engine
 
-	renderedContentMap, err := e.Render(chart, valuesToRender)
+	renderedContentMap, err := engine.Render(loadedChart, valuesToRender)
+
 	if err != nil {
 		return nil, fmt.Errorf("Error Render chart %s: %v", chartPath, err)
 	}
-	maps.Copy(renderItems, renderedContentMap)
-
-	for _, child := range chart.Dependencies() {
-		// fmt.Print(child)
-		renderedContentMapChild, err := e.Render(child, valuesToRender)
-		if err != nil {
-			return nil, fmt.Errorf("Error Render chart %s: %v", chartPath, err)
-		}
-
-		maps.Copy(renderItems, renderedContentMapChild)
-	}
-
-	return SortMap(renderItems), nil
+	return renderedContentMap, nil
 }
 
-// SortMap takes a map[string]string and returns a new map[string]string
-// with the key-value pairs sorted by keys.
-func SortMap(m map[string]string) map[string]string {
-	// Step 1: Extract keys
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-
-	// Step 2: Sort keys
-	sort.Strings(keys)
-
-	// Step 3: Create a new map to hold the sorted key-value pairs
-	sortedMap := make(map[string]string)
-	for _, key := range keys {
-		sortedMap[key] = m[key]
-	}
-
-	return sortedMap
+func isChartDirectory(dir string) bool {
+	chartYamlPath := path.Join(dir, "Chart.yaml")
+	_, err := os.Stat(chartYamlPath)
+	return err == nil
 }
