@@ -7,10 +7,13 @@ import (
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/engine"
+	"helm.sh/helm/v3/pkg/getter"
 )
 
-func NewRenderItems(chartPath string, valueFiles []string, setValues []string) (map[string]string, error) {
+func NewRenderItems(chartPath string, valueFiles []string, Values []string) (map[string]string, error) {
 	loadedChart, err := loader.Load(chartPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading chart %s: %v", chartPath, err)
@@ -39,7 +42,13 @@ func NewRenderItems(chartPath string, valueFiles []string, setValues []string) (
 		Namespace: "test",
 	}
 
-	values, err := loadValues(valueFiles, setValues)
+	valueOpts := &values.Options{
+		ValueFiles: valueFiles,
+		Values:     Values,
+	}
+	var settings = cli.New()
+	p := getter.All(settings)
+	values, err := valueOpts.MergeValues(p)
 	if err != nil {
 		return nil, err
 	}

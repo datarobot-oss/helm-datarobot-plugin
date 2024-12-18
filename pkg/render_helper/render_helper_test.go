@@ -7,128 +7,216 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestLoadValuesSingleFile tests loading values from a single file.
-func TestLoadValuesSingleFile(t *testing.T) {
-	valuesFile := "testdata/values1.yaml"
-
-	// Create test data files
-	defer setupTestFiles(t, map[string]string{
-		valuesFile: `
-replicaCount: 1
-image:
-  repository: nginx
-  tag: stable
-`,
-	})()
-
-	values, err := loadValues([]string{valuesFile}, []string{})
+// createTestFile creates temporary test files with provided content and returns a function to clean them up.
+func createTestFile(t *testing.T, filename, content string) func() {
+	err := os.WriteFile(filename, []byte(content), 0644)
 	assert.NoError(t, err)
 
-	expected := map[string]interface{}{
-		"replicaCount": 1,
-		"image": map[string]interface{}{
-			"repository": "nginx",
-			"tag":        "stable",
-		},
-	}
-	assert.Equal(t, expected, values)
-}
-
-// TestLoadValuesMultipleFiles tests loading values from multiple files.
-func TestLoadValuesMultipleFiles(t *testing.T) {
-	valuesFile1 := "testdata/values1.yaml"
-	valuesFile2 := "testdata/values2.yaml"
-
-	// Create test data files
-	defer setupTestFiles(t, map[string]string{
-		valuesFile1: `
-replicaCount: 1
-image:
-  repository: nginx
-  tag: stable
-`,
-		valuesFile2: `
-image:
-  tag: latest
-resources:
-  limits:
-    cpu: 200m
-`,
-	})()
-
-	values, err := loadValues([]string{valuesFile1, valuesFile2}, []string{})
-	assert.NoError(t, err)
-
-	expected := map[string]interface{}{
-		"replicaCount": 1,
-		"image": map[string]interface{}{
-			"repository": "nginx",
-			"tag":        "latest",
-		},
-		"resources": map[string]interface{}{
-			"limits": map[string]interface{}{
-				"cpu": "200m",
-			},
-		},
-	}
-	assert.Equal(t, expected, values)
-}
-
-// TestLoadValuesWithSet tests loading values from files and overriding them with set values.
-func TestLoadValuesWithSet(t *testing.T) {
-	valuesFile1 := "testdata/values1.yaml"
-	valuesFile2 := "testdata/values2.yaml"
-
-	// Create test data files
-	defer setupTestFiles(t, map[string]string{
-		valuesFile1: `
-replicaCount: 1
-image:
-  repository: nginx
-  tag: stable
-`,
-		valuesFile2: `
-image:
-  tag: latest
-resources:
-  limits:
-    cpu: 200m
-`,
-	})()
-
-	values, err := loadValues([]string{valuesFile1, valuesFile2}, []string{"replicaCount=3", "resources.limits.memory=512Mi"})
-	assert.NoError(t, err)
-
-	expected := map[string]interface{}{
-		"replicaCount": 3,
-		"image": map[string]interface{}{
-			"repository": "nginx",
-			"tag":        "latest",
-		},
-		"resources": map[string]interface{}{
-			"limits": map[string]interface{}{
-				"cpu":    "200m",
-				"memory": "512Mi",
-			},
-		},
-	}
-	assert.Equal(t, expected, values)
-}
-
-// setupTestFiles creates temporary test data files and cleans them up after testing.
-func setupTestFiles(t *testing.T, files map[string]string) func() {
-	for filename, content := range files {
-		err := os.MkdirAll("testdata", 0755)
-		assert.NoError(t, err)
-		err = os.WriteFile(filename, []byte(content), 0644)
-		assert.NoError(t, err)
-	}
 	return func() {
-		for filename := range files {
-			err := os.Remove(filename)
-			assert.NoError(t, err)
-		}
-		err := os.RemoveAll("testdata")
+		err := os.Remove(filename)
 		assert.NoError(t, err)
 	}
+}
+
+// TestLoadValuesSingleFile tests loading values from a single file.
+func TestNewRenderItemsValuesSingleFile(t *testing.T) {
+	valuesFile := "values1.yaml"
+	defer createTestFile(t, valuesFile, `
+image:
+  repository: nginx
+  tag: stable
+`)()
+
+	values, err := NewRenderItems("../../testdata/test-chart6/", []string{valuesFile}, []string{})
+	assert.NoError(t, err)
+	expected := map[string]string{
+		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-release-test-chart6
+  labels:
+    app.kubernetes.io/name: test-chart6
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-chart6
+      app.kubernetes.io/instance: test-release
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-chart6
+        app.kubernetes.io/instance: test-release
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      containers:
+        - name: test-chart6
+          image: nginx:stable
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+`}
+	assert.Equal(t, expected, values)
+}
+
+// TestNewRenderItemsValuesMultipleFiles tests loading values from multiple files where later files override earlier ones.
+func TestNewRenderItemsValuesMultipleFiles(t *testing.T) {
+	valuesFile1 := "values1.yaml"
+	valuesFile2 := "values2.yaml"
+
+	// Create test data files and defer cleanup
+	defer createTestFile(t, valuesFile1, `
+image:
+  repository: nginx
+  tag: stable
+`)()
+	defer createTestFile(t, valuesFile2, `
+image:
+  tag: latest
+resources:
+  limits:
+    cpu: 200m
+`)()
+
+	values, err := NewRenderItems("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, []string{})
+	assert.NoError(t, err)
+	expected := map[string]string{
+		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-release-test-chart6
+  labels:
+    app.kubernetes.io/name: test-chart6
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-chart6
+      app.kubernetes.io/instance: test-release
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-chart6
+        app.kubernetes.io/instance: test-release
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      containers:
+        - name: test-chart6
+          image: nginx:latest
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+`}
+	assert.Equal(t, expected, values)
+}
+
+// TestNewRenderItemsValuesMultipleFilesInputSet tests loading values from multiple files where later files override earlier ones.
+func TestNewRenderItemsValuesMultipleFilesInputSet(t *testing.T) {
+	valuesFile1 := "values1.yaml"
+	valuesFile2 := "values2.yaml"
+
+	// Create test data files and defer cleanup
+	defer createTestFile(t, valuesFile1, `
+image:
+  repository: nginx
+  tag: stable
+`)()
+	defer createTestFile(t, valuesFile2, `
+image:
+  tag: latest
+resources:
+  limits:
+    cpu: 200m
+`)()
+
+	setValues := []string{"replicaCount=3"}
+	values, err := NewRenderItems("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, setValues)
+	assert.NoError(t, err)
+	expected := map[string]string{
+		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-release-test-chart6
+  labels:
+    app.kubernetes.io/name: test-chart6
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-chart6
+      app.kubernetes.io/instance: test-release
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-chart6
+        app.kubernetes.io/instance: test-release
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      containers:
+        - name: test-chart6
+          image: nginx:latest
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+`}
+	assert.Equal(t, expected, values)
+}
+
+// TestNewRenderItemsEmptyFilesInputSet
+func TestNewRenderItemsEmptyFilesInputSet(t *testing.T) {
+	setValues := []string{"replicaCount=3", "image.tag=inputset"}
+	values, err := NewRenderItems("../../testdata/test-chart6/", []string{}, setValues)
+	assert.NoError(t, err)
+	expected := map[string]string{
+		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-release-test-chart6
+  labels:
+    app.kubernetes.io/name: test-chart6
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-chart6
+      app.kubernetes.io/instance: test-release
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-chart6
+        app.kubernetes.io/instance: test-release
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      containers:
+        - name: test-chart6
+          image: docker.io/alpine/curl:inputset
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+`}
+	assert.Equal(t, expected, values)
 }
