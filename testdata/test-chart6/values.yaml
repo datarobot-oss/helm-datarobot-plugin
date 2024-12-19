@@ -1,0 +1,14 @@
+replicaCount: 1
+
+image:
+  repository: docker.io/alpine/curl
+  pullPolicy: IfNotPresent
+  tag: 8.9.1
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

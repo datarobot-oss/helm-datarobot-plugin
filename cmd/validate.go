@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -27,7 +27,7 @@ $ helm datarobot validate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		manifest, err := render_helper.NewRenderItems(chartPath)
+		manifest, err := render_helper.RenderChart(chartPath, v.ValueFiles, v.Values)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
@@ -36,32 +36,30 @@ $ helm datarobot validate chart.tgz
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
-		if validateDebug {
+		if v.Debug {
 			fmt.Printf("---\n# annotation: %s\n", annotation)
-			fmt.Printf("---\n# imageDoc: %s\n", imageDoc)
+			b, err := json.MarshalIndent(imageDoc, "", "  ")
+			if err == nil {
+				fmt.Println(string(b))
+			}
 		}
 
 		if len(imageDoc) == 0 {
 			return fmt.Errorf("imageDoc is empty")
 		}
 		var errorImageAllowed []string
-		for fileName, template := range manifest {
-			// We only apply the following lint rules to yaml files
-			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
-				continue
-			}
-
-			if validateDebug {
-				fmt.Printf("---\n# Source: %s\n%s\n", fileName, template)
+		for _, template := range strings.Split(manifest, "\n---\n") {
+			if v.Debug {
+				fmt.Printf("---\n%s\n", template)
 			}
 
 			manifestImages, err := ExtractImagesFromManifest(template)
 			if err != nil {
-				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", fileName, err)
+				return fmt.Errorf("Error ExtractImagesFromManifest chart: %v", err)
 			}
 			// Validate manifestImages against the imageDoc
 			for _, image := range manifestImages {
-				if !isImageAllowed(image, imageDoc) {
+				if !isImageDeclared(image, imageDoc) {
 					if !SliceHas(errorImageAllowed, image) {
 						errorImageAllowed = append(errorImageAllowed, image)
 					}
@@ -72,7 +70,7 @@ $ helm datarobot validate chart.tgz
 
 		if len(errorImageAllowed) > 0 {
 			sort.Strings(errorImageAllowed)
-			return fmt.Errorf("Images not declared as ImageDoc: %v", errorImageAllowed)
+			return fmt.Errorf("Images not declared as ImageDoc:\n%s", strings.Join(errorImageAllowed, "\n"))
 		} else {
 			cmd.Print("Image Doc Valid")
 		}
@@ -81,10 +79,19 @@ $ helm datarobot validate chart.tgz
 	},
 }
 
-var validateDebug bool
+type validateInput struct {
+	Values     []string
+	ValueFiles []string
+	Debug      bool
+}
+
+var v validateInput
 
 func init() {
 	rootCmd.AddCommand(validateCmd)
 	validateCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	validateCmd.Flags().BoolVarP(&validateDebug, "debug", "d", false, "debug")
+	validateCmd.Flags().BoolVarP(&v.Debug, "debug", "d", false, "debug")
+	validateCmd.Flags().StringSliceVarP(&v.ValueFiles, "values", "f", []string{}, "specify values in a YAML file or a URL (can specify multiple)")
+	validateCmd.Flags().StringArrayVar(&v.Values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+
 }
