@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -28,7 +27,7 @@ $ helm datarobot validate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		manifest, err := render_helper.NewRenderItems(chartPath, v.ValueFiles, v.Values)
+		manifest, err := render_helper.RenderChart(chartPath, v.ValueFiles, v.Values)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
@@ -49,19 +48,14 @@ $ helm datarobot validate chart.tgz
 			return fmt.Errorf("imageDoc is empty")
 		}
 		var errorImageAllowed []string
-		for fileName, template := range manifest {
-			// We only apply the following lint rules to yaml files
-			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
-				continue
-			}
-
+		for _, template := range strings.Split(manifest, "\n---\n") {
 			if v.Debug {
-				fmt.Printf("---\n# Source: %s\n%s\n", fileName, template)
+				fmt.Printf("---\n%s\n", template)
 			}
 
 			manifestImages, err := ExtractImagesFromManifest(template)
 			if err != nil {
-				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", fileName, err)
+				return fmt.Errorf("Error ExtractImagesFromManifest chart: %v", err)
 			}
 			// Validate manifestImages against the imageDoc
 			for _, image := range manifestImages {

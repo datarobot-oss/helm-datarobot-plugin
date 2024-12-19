@@ -19,7 +19,7 @@ func createTestFile(t *testing.T, filename, content string) func() {
 }
 
 // TestLoadValuesSingleFile tests loading values from a single file.
-func TestNewRenderItemsValuesSingleFile(t *testing.T) {
+func TestRenderChartValuesSingleFile(t *testing.T) {
 	valuesFile := "values1.yaml"
 	defer createTestFile(t, valuesFile, `
 image:
@@ -27,10 +27,11 @@ image:
   tag: stable
 `)()
 
-	values, err := NewRenderItems("../../testdata/test-chart6/", []string{valuesFile}, []string{})
+	values, err := RenderChart("../../testdata/test-chart6/", []string{valuesFile}, []string{})
 	assert.NoError(t, err)
-	expected := map[string]string{
-		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+	expected := `---
+# Source: test-chart6/templates/deployment.yaml
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: test-release-test-chart6
@@ -61,12 +62,12 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
-`}
+`
 	assert.Equal(t, expected, values)
 }
 
-// TestNewRenderItemsValuesMultipleFiles tests loading values from multiple files where later files override earlier ones.
-func TestNewRenderItemsValuesMultipleFiles(t *testing.T) {
+// TestRenderChartValuesMultipleFiles tests loading values from multiple files where later files override earlier ones.
+func TestRenderChartValuesMultipleFiles(t *testing.T) {
 	valuesFile1 := "values1.yaml"
 	valuesFile2 := "values2.yaml"
 
@@ -84,10 +85,11 @@ resources:
     cpu: 200m
 `)()
 
-	values, err := NewRenderItems("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, []string{})
+	values, err := RenderChart("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, []string{})
 	assert.NoError(t, err)
-	expected := map[string]string{
-		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+	expected := `---
+# Source: test-chart6/templates/deployment.yaml
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: test-release-test-chart6
@@ -118,12 +120,12 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
-`}
+`
 	assert.Equal(t, expected, values)
 }
 
-// TestNewRenderItemsValuesMultipleFilesInputSet tests loading values from multiple files where later files override earlier ones.
-func TestNewRenderItemsValuesMultipleFilesInputSet(t *testing.T) {
+// TestRenderChartValuesMultipleFilesInputSet tests loading values from multiple files where later files override earlier ones.
+func TestRenderChartValuesMultipleFilesInputSet(t *testing.T) {
 	valuesFile1 := "values1.yaml"
 	valuesFile2 := "values2.yaml"
 
@@ -142,10 +144,11 @@ resources:
 `)()
 
 	setValues := []string{"replicaCount=3"}
-	values, err := NewRenderItems("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, setValues)
+	values, err := RenderChart("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, setValues)
 	assert.NoError(t, err)
-	expected := map[string]string{
-		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+	expected := `---
+# Source: test-chart6/templates/deployment.yaml
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: test-release-test-chart6
@@ -176,17 +179,18 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
-`}
+`
 	assert.Equal(t, expected, values)
 }
 
-// TestNewRenderItemsEmptyFilesInputSet
-func TestNewRenderItemsEmptyFilesInputSet(t *testing.T) {
+// TestRenderChartEmptyFilesInputSet
+func TestRenderChartEmptyFilesInputSet(t *testing.T) {
 	setValues := []string{"replicaCount=3", "image.tag=inputset"}
-	values, err := NewRenderItems("../../testdata/test-chart6/", []string{}, setValues)
+	values, err := RenderChart("../../testdata/test-chart6/", []string{}, setValues)
 	assert.NoError(t, err)
-	expected := map[string]string{
-		"test-chart6/templates/deployment.yaml": `apiVersion: apps/v1
+	expected := `---
+# Source: test-chart6/templates/deployment.yaml
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: test-release-test-chart6
@@ -217,6 +221,6 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
-`}
+`
 	assert.Equal(t, expected, values)
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -31,25 +30,21 @@ $ helm datarobot generate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		manifest, err := render_helper.NewRenderItems(chartPath, g.ValueFiles, g.Values)
+		manifest, err := render_helper.RenderChart(chartPath, g.ValueFiles, g.Values)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
 
 		uniqueEntries := make(map[string]string)
-		for fileName, template := range manifest {
-			// // We only apply the following lint rules to yaml files
-			if filepath.Ext(fileName) != ".yaml" || filepath.Ext(fileName) == ".yml" {
-				continue
-			}
+		for _, template := range strings.Split(manifest, "\n---\n") {
 
 			if g.Debug {
-				fmt.Printf("---\n# Source: %s\n%s\n", fileName, template)
+				fmt.Printf("---\n%s\n", template)
 			}
 
 			manifestImages, err := ExtractImagesFromManifest(template)
 			if err != nil {
-				return fmt.Errorf("Error ExtractImagesFromManifest chart %s: %v", fileName, err)
+				return fmt.Errorf("Error ExtractImagesFromManifest chart: %v", err)
 			}
 
 			re := regexp.MustCompile("[^a-zA-Z0-9]+")
