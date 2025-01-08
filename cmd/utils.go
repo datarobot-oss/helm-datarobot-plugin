@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -10,6 +14,41 @@ import (
 	batch_v1 "k8s.io/api/batch/v1"
 	"sigs.k8s.io/yaml"
 )
+
+func GetTransport(caCertPath, certPath, keyPath string, insecureSkipVerify bool) (*http.Transport, error) {
+	// Load custom CA certificate
+	var caCertPool *x509.CertPool
+	if caCertPath != "" {
+		caCert, err := ioutil.ReadFile(caCertPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA certificate: %v", err)
+		}
+
+		caCertPool = x509.NewCertPool()
+		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+			return nil, fmt.Errorf("failed to append CA certificate")
+		}
+	}
+
+	// Load client certificate and key
+	var clientCert tls.Certificate
+	if certPath != "" && keyPath != "" {
+		var err error
+		clientCert, err = tls.LoadX509KeyPair(certPath, keyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate and key: %v", err)
+		}
+	}
+
+	// Create and return a custom HTTP transport
+	return &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:            caCertPool,
+			Certificates:       []tls.Certificate{clientCert},
+			InsecureSkipVerify: insecureSkipVerify,
+		},
+	}, nil
+}
 
 // isImageDeclared checks if the image is in the declared imagedoc list
 func isImageDeclared(image string, imageDoc []dr_chartutil.DatarobotImageDeclaration) bool {

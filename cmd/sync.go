@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
@@ -68,13 +66,9 @@ Pushing image: registry.example.com/datarobot/test-image1:1.0.0
 				return fmt.Errorf("failed to pull image: %w", err)
 			}
 
-			transport := http.DefaultTransport
-			if skipTlsVerify {
-				transport = &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				}
+			transport, err := GetTransport(caCertPath, certPath, keyPath, skipTlsVerify)
+			if err != nil {
+				return fmt.Errorf("failed to GetTransport: %w", err)
 			}
 
 			cmd.Printf("Pushing image: %s\n\n", dstImage)
@@ -104,7 +98,7 @@ Pushing image: registry.example.com/datarobot/test-image1:1.0.0
 	},
 }
 
-var syncReg, syncUsername, syncPassword, syncToken, syncRefPrefix string
+var syncReg, syncUsername, syncPassword, syncToken, syncRefPrefix, caCertPath, certPath, keyPath string
 var syncDryRun, skipTlsVerify bool
 
 func init() {
@@ -115,6 +109,10 @@ func init() {
 	syncCmd.Flags().StringVarP(&syncReg, "registry", "r", "", "registry to auth")
 	syncCmd.Flags().StringVarP(&syncRefPrefix, "prefix", "", "", "append prefix on repo name")
 	syncCmd.Flags().BoolVarP(&syncDryRun, "dry-run", "", false, "Perform a dry run without making changes")
-	syncCmd.Flags().BoolVarP(&skipTlsVerify, "skip-tls-verify", "", false, "Ignore SSL certificate verification (optional)")
+	syncCmd.Flags().StringVarP(&caCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
+	syncCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
+	syncCmd.Flags().StringVarP(&keyPath, "key", "K", "", "Path to the client key")
+	syncCmd.Flags().BoolVarP(&skipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
+
 	syncCmd.MarkFlagRequired("registry")
 }
