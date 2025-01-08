@@ -19,7 +19,7 @@ func RenderChart(chartPath string, valueFiles []string, Values []string) (string
 	client.IncludeCRDs = false
 	client.Namespace = "test"
 	client.DisableHooks = true
-	parsedKubeVersion, err := chartutil.ParseKubeVersion("v1.31.0")
+	parsedKubeVersion, err := chartutil.ParseKubeVersion("v1.27.0")
 	if err != nil {
 		return "", fmt.Errorf("invalid kube version: %s", err)
 	}
