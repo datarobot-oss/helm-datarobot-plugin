@@ -22,11 +22,14 @@ helm-datarobot load [flags]
 ### Options
 
 ```
+  -c, --ca-cert string    Path to the custom CA certificate
+  -C, --cert string       Path to the client certificate
   -h, --help              help for load
+  -i, --insecure          Skip server certificate verification
+  -K, --key string        Path to the client key
   -p, --password string   pass to auth
       --prefix string     append prefix on repo name
   -r, --registry string   registry to auth
-      --skip-tls-verify   Ignore SSL certificate verification (optional)
   -t, --token string      pass to auth
   -u, --username string   username to auth
 ```

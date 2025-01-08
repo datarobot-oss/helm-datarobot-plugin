@@ -145,6 +145,9 @@ func init() {
 	loadCmd.Flags().StringVarP(&loadToken, "token", "t", "", "pass to auth")
 	loadCmd.Flags().StringVarP(&loadReg, "registry", "r", "", "registry to auth")
 	loadCmd.Flags().StringVarP(&loadRefPrefix, "prefix", "", "", "append prefix on repo name")
-	loadCmd.Flags().BoolVarP(&skipTlsVerify, "skip-tls-verify", "", false, "Ignore SSL certificate verification (optional)")
+	loadCmd.Flags().StringVarP(&caCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
+	loadCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
+	loadCmd.Flags().StringVarP(&keyPath, "key", "K", "", "Path to the client key")
+	loadCmd.Flags().BoolVarP(&skipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
 	loadCmd.MarkFlagRequired("registry")
 }
