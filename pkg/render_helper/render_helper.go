@@ -2,75 +2,51 @@ package render_helper
 
 import (
 	"fmt"
-	"maps"
-	"sort"
 
+	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/engine"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/cli/values"
+	"helm.sh/helm/v3/pkg/getter"
 )
 
-func NewRenderItems(chartPath string) (map[string]string, error) {
-	renderItems := make(map[string]string)
-	chart, err := loader.Load(chartPath)
+func RenderChart(chartPath string, valueFiles []string, Values []string) (string, error) {
+	client := action.NewInstall(&action.Configuration{})
+	client.ClientOnly = true
+	client.DryRun = true
+	client.ReleaseName = "test-release"
+	client.IncludeCRDs = false
+	client.Namespace = "test"
+	client.DisableHooks = true
+	parsedKubeVersion, err := chartutil.ParseKubeVersion("v1.27.0")
 	if err != nil {
-		return nil, fmt.Errorf("Error loading chart %s: %v", chartPath, err)
+		return "", fmt.Errorf("invalid kube version: %s", err)
+	}
+	client.KubeVersion = parsedKubeVersion
+
+	valueOpts := &values.Options{
+		ValueFiles: valueFiles,
+		Values:     Values,
 	}
 
-	options := chartutil.ReleaseOptions{
-		Name:      "test-release",
-		Namespace: "test",
-	}
-	values := map[string]interface{}{}
-	caps := chartutil.DefaultCapabilities.Copy()
-
-	cvals, err := chartutil.CoalesceValues(chart, values)
+	loadedChart, err := loader.Load(chartPath)
 	if err != nil {
-		return nil, fmt.Errorf("Error CoalesceValues chart %s: %v", chartPath, err)
+		return "", fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 	}
 
-	valuesToRender, err := chartutil.ToRenderValuesWithSchemaValidation(chart, cvals, options, caps, true)
+	var settings = cli.New()
+	p := getter.All(settings)
+	values, err := valueOpts.MergeValues(p)
 	if err != nil {
-		return nil, fmt.Errorf("Error ToRenderValuesWithSchemaValidation chart %s: %v", chartPath, err)
+		return "", err
 	}
-	var e engine.Engine
 
-	renderedContentMap, err := e.Render(chart, valuesToRender)
+	// Render chart.
+	rel, err := client.Run(loadedChart, values)
 	if err != nil {
-		return nil, fmt.Errorf("Error Render chart %s: %v", chartPath, err)
-	}
-	maps.Copy(renderItems, renderedContentMap)
-
-	for _, child := range chart.Dependencies() {
-		// fmt.Print(child)
-		renderedContentMapChild, err := e.Render(child, valuesToRender)
-		if err != nil {
-			return nil, fmt.Errorf("Error Render chart %s: %v", chartPath, err)
-		}
-
-		maps.Copy(renderItems, renderedContentMapChild)
+		return "", fmt.Errorf("could not render helm chart correctly: %w", err)
 	}
 
-	return SortMap(renderItems), nil
-}
-
-// SortMap takes a map[string]string and returns a new map[string]string
-// with the key-value pairs sorted by keys.
-func SortMap(m map[string]string) map[string]string {
-	// Step 1: Extract keys
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-
-	// Step 2: Sort keys
-	sort.Strings(keys)
-
-	// Step 3: Create a new map to hold the sorted key-value pairs
-	sortedMap := make(map[string]string)
-	for _, key := range keys {
-		sortedMap[key] = m[key]
-	}
-
-	return sortedMap
+	return rel.Manifest, nil
 }

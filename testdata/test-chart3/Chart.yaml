@@ -28,3 +28,7 @@ annotations:
   datarobot.com/images: |
     - name: test-image3
       image: docker.io/datarobotdev/test-image3:3.0.0
+
+  custom.com/images-override: |
+    - name: test-image3
+      image: docker.io/testoverride/test-image3:3.0.0
