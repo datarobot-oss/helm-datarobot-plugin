@@ -136,8 +136,10 @@ func GetSecret(stdin bool, envVar string, argv string) string {
 		value, exists := os.LookupEnv(envVar)
 		if !exists {
 			secret = argv
+		} else {
+			secret = value
 		}
-		secret = value
+
 	}
 	return secret
 }
