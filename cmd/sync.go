@@ -38,19 +38,17 @@ Pushing image: registry.example.com/datarobot/test-image1:1.0.0
 			if err != nil {
 				return err
 			}
-
 			srcImage := iUri.String()
 			if image.Tag != "" {
 				iUri.Tag = image.Tag
 			}
 
 			iUri.RegistryHost = syncReg
-			if syncRefPrefix != "" {
-				if iUri.Organization == "" {
-					iUri.Organization = syncRefPrefix
-				} else {
-					iUri.Organization = strings.Join([]string{syncRefPrefix, iUri.Organization}, "/")
-				}
+			iUri.Organization = iUri.Join([]string{syncImagePrefix, iUri.Organization}, "/")
+			iUri.Project = iUri.Join([]string{iUri.Project, syncImageSuffix}, "/")
+			if syncImageRepo != "" {
+				iUri.Organization = syncImageRepo
+				iUri.Project = ""
 			}
 
 			dstImage := iUri.String()
@@ -98,16 +96,19 @@ Pushing image: registry.example.com/datarobot/test-image1:1.0.0
 	},
 }
 
-var syncReg, syncUsername, syncPassword, syncToken, syncRefPrefix, caCertPath, certPath, keyPath string
+var syncReg, syncUsername, syncPassword, syncToken, syncImagePrefix, syncImageSuffix, syncImageRepo, syncTransform, caCertPath, certPath, keyPath string
 var syncDryRun, skipTlsVerify bool
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
+	syncCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
 	syncCmd.Flags().StringVarP(&syncUsername, "username", "u", "", "username to auth")
 	syncCmd.Flags().StringVarP(&syncPassword, "password", "p", "", "pass to auth")
 	syncCmd.Flags().StringVarP(&syncToken, "token", "t", "", "pass to auth")
 	syncCmd.Flags().StringVarP(&syncReg, "registry", "r", "", "registry to auth")
-	syncCmd.Flags().StringVarP(&syncRefPrefix, "prefix", "", "", "append prefix on repo name")
+	syncCmd.Flags().StringVarP(&syncImagePrefix, "prefix", "", "", "append prefix on repo name")
+	syncCmd.Flags().StringVarP(&syncImageRepo, "repo", "", "", "rewrite the target repository name")
+	syncCmd.Flags().StringVarP(&syncImageSuffix, "suffix", "", "", "append suffix on repo name")
 	syncCmd.Flags().BoolVarP(&syncDryRun, "dry-run", "", false, "Perform a dry run without making changes")
 	syncCmd.Flags().StringVarP(&caCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
 	syncCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
