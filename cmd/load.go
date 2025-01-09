@@ -96,11 +96,7 @@ $ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -
 				return fmt.Errorf("failed to load Docker image from tarball: %v", err)
 			}
 
-			// Push the image to the specified registry
-			tag := header.Name // Use the tarball name as the image tag
-			tag = strings.TrimSuffix(tag, ".tgz")
-
-			imageName := loadReg + "/" + tag
+			imageName := loadReg + "/" + strings.TrimSuffix(header.Name, ".tgz")
 			iUri, err := image_uri.NewDockerUri(imageName)
 			if err != nil {
 				return err
