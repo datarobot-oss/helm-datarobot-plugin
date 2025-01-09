@@ -15,12 +15,12 @@ func TestCommandSave(t *testing.T) {
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.1
 [Dry-Run] ReTagging image: docker.io/alpine/curl:8.9.1 > docker.io/alpine/curl:stable
-[Dry-Run] adding image to tgz: curl:stable.tgz
+[Dry-Run] adding image to tgz: alpine/curl:stable.tgz
 [Dry-Run] Pulling image: docker.io/busybox:1.36.1
 [Dry-Run] ReTagging image: docker.io/busybox:1.36.1 > docker.io/busybox:simple
 [Dry-Run] adding image to tgz: busybox:simple.tgz
 [Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0
-[Dry-Run] adding image to tgz: curl:8.10.0.tgz
+[Dry-Run] adding image to tgz: alpine/curl:8.10.0.tgz
 [Dry-Run] Tarball created successfully: test.tgz`
 		assert.Equal(t, expectedOutput, output)
 	})

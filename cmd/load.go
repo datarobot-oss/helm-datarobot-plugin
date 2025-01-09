@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
@@ -97,16 +96,13 @@ $ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -
 				return fmt.Errorf("failed to load Docker image from tarball: %v", err)
 			}
 
-			// Push the image to the specified registry
-			tag := filepath.Base(header.Name) // Use the tarball name as the image tag
-			tag = strings.TrimSuffix(tag, ".tgz")
-
-			imageName := loadReg + "/" + loadImagePrefix + "/" + tag
+			imageName := loadReg + "/" + strings.TrimSuffix(header.Name, ".tgz")
 			iUri, err := image_uri.NewDockerUri(imageName)
 			if err != nil {
 				return err
 			}
 
+			iUri.Organization = iUri.Join([]string{loadImagePrefix, iUri.Organization}, "/")
 			iUri.Project = iUri.Join([]string{iUri.Project, loadImageSuffix}, "/")
 			if loadImageRepo != "" {
 				iUri.Organization = loadImageRepo
@@ -128,21 +124,20 @@ $ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -
 				return fmt.Errorf("failed to GetTransport: %w", err)
 			}
 
-			var auth authn.Authenticator
-
-			if loadToken != "" {
+			auth := authn.Anonymous
+			secretLoadToken := GetSecret(loadPasswordStdin, "REGISTRY_TOKEN", loadToken)
+			if secretLoadToken != "" {
 				auth = &authn.Bearer{
-					Token: GetSecret(loadPasswordStdin, "REGISTRY_TOKEN", loadToken),
+					Token: secretLoadToken,
 				}
-
-			} else if loadUsername != "" && loadPassword != "" {
+			}
+			secretLoadUsername := GetSecret(false, "REGISTRY_USERNAME", loadUsername)
+			secretLoadPassword := GetSecret(loadPasswordStdin, "REGISTRY_PASSWORD", loadPassword)
+			if secretLoadUsername != "" && secretLoadPassword != "" {
 				auth = &authn.Basic{
-					Username: GetSecret(false, "REGISTRY_USERNAME", loadUsername),
-					Password: GetSecret(loadPasswordStdin, "REGISTRY_PASSWORD", loadPassword),
+					Username: secretLoadUsername,
+					Password: secretLoadPassword,
 				}
-
-			} else {
-				auth = authn.Anonymous
 			}
 
 			err = remote.Write(ref, image, remote.WithTransport(transport), remote.WithAuth(auth))

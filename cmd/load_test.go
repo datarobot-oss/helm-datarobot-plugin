@@ -25,7 +25,7 @@ Tarball created successfully: image-load.tgz`
 	t.Run("prefix-suffix", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "load image-load.tgz -r ttl.sh --prefix prefix --suffix suffix")
 		assert.NoError(t, err)
-		expectedLoadOutput := `Successfully pushed image ttl.sh/prefix/suffix/curl:8.9.1
+		expectedLoadOutput := `Successfully pushed image ttl.sh/prefix/alpine/suffix/curl:8.9.1
 Successfully pushed image ttl.sh/prefix/suffix/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
