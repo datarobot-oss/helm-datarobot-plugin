@@ -3,14 +3,13 @@ package cmd
 import (
 	"archive/tar"
 	"compress/gzip"
-	"crypto/tls"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -88,24 +87,31 @@ Successfully pushed image: registry.example.com/test-image1:1.0.0
 			tag := filepath.Base(header.Name) // Use the tarball name as the image tag
 			tag = strings.TrimSuffix(tag, ".tgz")
 
-			var r []string
-			for _, str := range []string{loadReg, loadRefPrefix, tag} {
-				if str != "" {
-					r = append(r, str)
-				}
+			imageName := loadReg + "/" + loadImagePrefix + "/" + tag
+			iUri, err := image_uri.NewDockerUri(imageName)
+			if err != nil {
+				return err
 			}
-			ref, err := name.NewTag(strings.Join(r, "/"))
+
+			iUri.Project = iUri.Join([]string{iUri.Project, loadImageSuffix}, "/")
+			if loadImageRepo != "" {
+				iUri.Organization = loadImageRepo
+				iUri.Project = ""
+			}
+
+			if loadDryRun {
+				cmd.Printf("[Dry-Run] Pushing image: %s\n", iUri.String())
+				continue
+			}
+
+			ref, err := name.NewTag(iUri.String())
 			if err != nil {
 				return fmt.Errorf("failed to create image reference: %v", err)
 			}
 
-			transport := http.DefaultTransport
-			if skipTlsVerify {
-				transport = &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				}
+			transport, err := GetTransport(caCertPath, certPath, keyPath, skipTlsVerify)
+			if err != nil {
+				return fmt.Errorf("failed to GetTransport: %w", err)
 			}
 
 			var auth authn.Authenticator
@@ -136,7 +142,8 @@ Successfully pushed image: registry.example.com/test-image1:1.0.0
 	},
 }
 
-var loadReg, loadUsername, loadPassword, loadToken, loadRefPrefix string
+var loadReg, loadUsername, loadPassword, loadToken, loadImagePrefix, loadImageSuffix, loadImageRepo string
+var loadDryRun bool
 
 func init() {
 	rootCmd.AddCommand(loadCmd)
@@ -144,10 +151,13 @@ func init() {
 	loadCmd.Flags().StringVarP(&loadPassword, "password", "p", "", "pass to auth")
 	loadCmd.Flags().StringVarP(&loadToken, "token", "t", "", "pass to auth")
 	loadCmd.Flags().StringVarP(&loadReg, "registry", "r", "", "registry to auth")
-	loadCmd.Flags().StringVarP(&loadRefPrefix, "prefix", "", "", "append prefix on repo name")
+	loadCmd.Flags().StringVarP(&loadImagePrefix, "prefix", "", "", "append prefix on repo name")
+	loadCmd.Flags().StringVarP(&loadImageRepo, "repo", "", "", "rewrite the target repository name")
+	loadCmd.Flags().StringVarP(&loadImageSuffix, "suffix", "", "", "append suffix on repo name")
 	loadCmd.Flags().StringVarP(&caCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
 	loadCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
 	loadCmd.Flags().StringVarP(&keyPath, "key", "K", "", "Path to the client key")
 	loadCmd.Flags().BoolVarP(&skipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
+	loadCmd.Flags().BoolVarP(&loadDryRun, "dry-run", "", false, "Perform a dry run without making changes")
 	loadCmd.MarkFlagRequired("registry")
 }
