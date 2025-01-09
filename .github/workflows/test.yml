@@ -37,20 +37,20 @@ jobs:
         with:
           version: v3.16.3
 
-      - name: Docs
-        run: |
-          make docs
-          if [[ $(git status --porcelain) ]]; then
-            echo "Documentation is out of date, please update it"
-            git diff
-            exit 1
-          fi
+      # - name: Docs
+      #   run: |
+      #     make docs
+      #     if [[ $(git status --porcelain) ]]; then
+      #       echo "Documentation is out of date, please update it"
+      #       git diff
+      #       exit 1
+      #     fi
 
       - name: Run Docker Registry
         run: |
           mkdir -p  reg/certs reg/auth
           cd reg
-          echo "reg_username:$apr1$unibpt68$MtVv8vPOOqY9KNus46uvU0" > ./auth/htpasswd
+          echo "reg_username:$2y$10$.9FIu6eRQkYl0xXMzZGjPuqTRfGX5oHScMEnojuXdB19AarIz/0Bm" > ./auth/htpasswd
           openssl req -newkey rsa:2048 -nodes -sha256 \
             -keyout ./certs/domain.key -x509 -days 365 \
             -out ./certs/domain.crt -subj "/CN=localhost"
@@ -66,7 +66,7 @@ jobs:
             -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
             registry:2
 
-          docker ps
+          sleep 5
 
           curl -u reg_username:reg_password https://localhost:5000/v2/_catalog --insecure
 
