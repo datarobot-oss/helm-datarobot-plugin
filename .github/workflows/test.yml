@@ -68,7 +68,7 @@ jobs:
 
           sleep 5
           curl -u admin:pass https://localhost:5000/v2/_catalog --insecure -v
-          docker admin -u reg_username -p pass https://localhost:5000
+          docker login  -u admin -p pass https://localhost:5000
 
       - name: run unit test
         run: |
