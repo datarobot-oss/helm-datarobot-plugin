@@ -67,7 +67,7 @@ jobs:
             registry:2
 
           sleep 5
-
+          curl -u reg_username:reg_password https://localhost:5000/v2/_catalog --insecure -v
           docker login -u reg_username -p reg_password https://localhost:5000
 
       - name: run unit test
