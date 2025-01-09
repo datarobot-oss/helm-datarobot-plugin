@@ -66,6 +66,8 @@ jobs:
             -e REGISTRY_AUTH_HTPASSWD_PATH=/htpasswd \
             registry:2
 
+          docker ps
+
           curl -u reg_username:reg_password https://localhost:5000/v2/_catalog --insecure
 
       - name: run unit test
