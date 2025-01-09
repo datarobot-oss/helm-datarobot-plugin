@@ -83,21 +83,21 @@ $ echo "reg_password" | helm datarobot sync testdata/test-chart1/ -r registry.ex
 			}
 
 			cmd.Printf("Pushing image: %s\n\n", dstImage)
-			var auth authn.Authenticator
 
-			if syncToken != "" {
+			auth := authn.Anonymous
+			secretSyncToken := GetSecret(syncPasswordStdin, "REGISTRY_TOKEN", syncToken)
+			if secretSyncToken != "" {
 				auth = &authn.Bearer{
-					Token: GetSecret(syncPasswordStdin, "REGISTRY_TOKEN", syncToken),
+					Token: secretSyncToken,
 				}
-
-			} else if syncUsername != "" && syncPassword != "" {
+			}
+			secretSyncUsername := GetSecret(false, "REGISTRY_USERNAME", syncUsername)
+			secretSyncPassword := GetSecret(syncPasswordStdin, "REGISTRY_PASSWORD", syncPassword)
+			if secretSyncUsername != "" && secretSyncPassword != "" {
 				auth = &authn.Basic{
-					Username: GetSecret(false, "REGISTRY_USERNAME", syncUsername),
-					Password: GetSecret(syncPasswordStdin, "REGISTRY_PASSWORD", syncPassword),
+					Username: secretSyncUsername,
+					Password: secretSyncPassword,
 				}
-
-			} else {
-				auth = authn.Anonymous
 			}
 
 			if err := crane.Push(img, dstImage, crane.WithTransport(transport), crane.WithAuth(auth)); err != nil {
@@ -128,6 +128,5 @@ func init() {
 	syncCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
 	syncCmd.Flags().StringVarP(&keyPath, "key", "K", "", "Path to the client key")
 	syncCmd.Flags().BoolVarP(&skipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
-
 	syncCmd.MarkFlagRequired("registry")
 }

@@ -73,8 +73,15 @@ $ du -h images.tgz
 				}
 
 			}
+			imageDir := ""
+			if iUri.Organization != "" || iUri.Project != "" {
+				imageDir = iUri.Join([]string{iUri.Organization, iUri.Project}, "/")
+				if err := os.MkdirAll(imageDir, os.ModePerm); err != nil {
+					return fmt.Errorf("creating directory %s: %v", imageDir, err)
+				}
+			}
 
-			tgzFileName := iUri.ImageName + ":" + iUri.Tag + ".tgz"
+			tgzFileName := iUri.Join([]string{imageDir, iUri.ImageName}, "/") + ":" + iUri.Tag + ".tgz"
 			if saveDryRun {
 				cmd.Printf("[Dry-Run] adding image to tgz: %s\n", tgzFileName)
 			} else {
@@ -147,7 +154,7 @@ func CreateTGZ(outputPath string, inputTGZPaths []string) error {
 
 		// Create a tar header for the tgz file
 		header := &tar.Header{
-			Name: filepath.Base(tgzPath),
+			Name: tgzPath,
 			Size: fileInfo.Size(),
 			Mode: int64(fileInfo.Mode()),
 		}
@@ -168,6 +175,20 @@ func CreateTGZ(outputPath string, inputTGZPaths []string) error {
 		err = os.Remove(tgzPath)
 		if err != nil {
 			return fmt.Errorf("failed to delete tgz file %q: %v", tgzPath, err)
+		}
+
+		dirPath := filepath.Dir(tgzPath)
+		// Read the contents of the directory
+		entries, err := os.ReadDir(dirPath)
+		if err != nil {
+			return fmt.Errorf("error reading directory: %s", err)
+		}
+		if len(entries) == 0 {
+			// Remove the directory if empty
+			err = os.Remove(dirPath)
+			if err != nil {
+				return fmt.Errorf("error deleting directory: %s", err)
+			}
 		}
 	}
 
