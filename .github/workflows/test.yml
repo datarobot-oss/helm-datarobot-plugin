@@ -51,7 +51,7 @@ jobs:
           mkdir -p  reg/certs reg/auth
           cd reg
           echo "reg_username:$2y$10$.9FIu6eRQkYl0xXMzZGjPuqTRfGX5oHScMEnojuXdB19AarIz/0Bm" > ./auth/htpasswd
-          openssl req -newkey rsa:2048 -nodes -sha256 \
+          openssl req -newkey rsa:1024 -nodes -sha256 \
             -keyout ./certs/domain.key -x509 -days 365 \
             -out ./certs/domain.crt -subj "/CN=localhost"
 
@@ -68,7 +68,7 @@ jobs:
 
           sleep 5
 
-          curl -u reg_username:reg_password https://localhost:5000/v2/_catalog --insecure
+          docker login -u reg_username -p reg_password localhost:5000
 
       - name: run unit test
         run: |

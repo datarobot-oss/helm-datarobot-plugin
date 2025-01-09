@@ -99,7 +99,7 @@ E4bmYvhnmO/hlPwDN02OSWHYm6m0yIzWXw==
 
 func TestGetSecret(t *testing.T) {
 	t.Run("direct", func(t *testing.T) {
-		output := GetSecret(false, "", "test")
+		output := GetSecret(false, "TEST_SEC", "test")
 		expectedOutput := `test`
 		assert.Equal(t, expectedOutput, output)
 	})
