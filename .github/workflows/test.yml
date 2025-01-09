@@ -37,38 +37,14 @@ jobs:
         with:
           version: v3.16.3
 
-      # - name: Docs
-      #   run: |
-      #     make docs
-      #     if [[ $(git status --porcelain) ]]; then
-      #       echo "Documentation is out of date, please update it"
-      #       git diff
-      #       exit 1
-      #     fi
-
-      - name: Run Docker Registry
+      - name: Docs
         run: |
-          mkdir -p  reg/certs reg/auth
-          cd reg
-          echo -n "admin:$2y$05$HxjHqYvivVQ5/eNQ2cD0lelNAqDGVKpCkOx4c3OgBR3wQranuGsOe" > ./auth/htpasswd
-          openssl req -newkey rsa:1024 -nodes -sha256 \
-            -keyout ./certs/domain.key -x509 -days 365 \
-            -out ./certs/domain.crt -subj "/CN=localhost"
-
-          docker run -d -p 5000:5000 --name registry \
-            -v ./certs:/certs \
-            -v ./auth:/auth \
-            -e REGISTRY_HTTP_ADDR=0.0.0.0:5000 \
-            -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
-            -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
-            -e REGISTRY_AUTH=htpasswd \
-            -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
-            -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
-            registry:2.7.0
-
-          sleep 5
-          curl -u admin:pass https://localhost:5000/v2/_catalog --insecure -v
-          docker login  -u admin -p pass https://localhost:5000
+          make docs
+          if [[ $(git status --porcelain) ]]; then
+            echo "Documentation is out of date, please update it"
+            git diff
+            exit 1
+          fi
 
       - name: run unit test
         run: |
