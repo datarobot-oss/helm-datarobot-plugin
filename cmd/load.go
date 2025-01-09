@@ -30,7 +30,21 @@ Example:
 $ helm datarobot load images.tgz -r registry.example.com -u reg_username -p reg_password
 Successfully pushed image: registry.example.com/test-image1:1.0.0
 
-'''`, "'", "`", -1),
+'''
+
+Authentication can be provided in various ways, including:
+
+'''sh
+export REGISTRY_USERNAME=reg_username
+export REGISTRY_PASSWORD=reg_password
+$ helm datarobot load images.tgz -r registry.example.com
+'''
+
+'''sh
+$ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -u reg_username --password-stdin
+'''
+
+`, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 
@@ -118,13 +132,13 @@ Successfully pushed image: registry.example.com/test-image1:1.0.0
 
 			if loadToken != "" {
 				auth = &authn.Bearer{
-					Token: loadToken,
+					Token: GetSecret(loadPasswordStdin, "REGISTRY_TOKEN", loadToken),
 				}
 
 			} else if loadUsername != "" && loadPassword != "" {
 				auth = &authn.Basic{
-					Username: loadUsername,
-					Password: loadPassword,
+					Username: GetSecret(false, "REGISTRY_USERNAME", loadUsername),
+					Password: GetSecret(loadPasswordStdin, "REGISTRY_PASSWORD", loadPassword),
 				}
 
 			} else {
@@ -143,12 +157,13 @@ Successfully pushed image: registry.example.com/test-image1:1.0.0
 }
 
 var loadReg, loadUsername, loadPassword, loadToken, loadImagePrefix, loadImageSuffix, loadImageRepo string
-var loadDryRun bool
+var loadDryRun, loadPasswordStdin bool
 
 func init() {
 	rootCmd.AddCommand(loadCmd)
 	loadCmd.Flags().StringVarP(&loadUsername, "username", "u", "", "username to auth")
 	loadCmd.Flags().StringVarP(&loadPassword, "password", "p", "", "pass to auth")
+	loadCmd.Flags().BoolVar(&loadPasswordStdin, "password-stdin", false, "Read password from stdin")
 	loadCmd.Flags().StringVarP(&loadToken, "token", "t", "", "pass to auth")
 	loadCmd.Flags().StringVarP(&loadReg, "registry", "r", "", "registry to auth")
 	loadCmd.Flags().StringVarP(&loadImagePrefix, "prefix", "", "", "append prefix on repo name")

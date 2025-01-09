@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"bufio"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 
@@ -120,4 +122,22 @@ func ExtractImagesFromManifest(manifest string) ([]string, error) {
 
 	sort.Strings(manifestImages)
 	return manifestImages, nil
+}
+
+func GetSecret(stdin bool, envVar string, argv string) string {
+	secret := ""
+	if stdin {
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			secret = scanner.Text()
+		}
+	}
+	if secret == "" {
+		value, exists := os.LookupEnv(envVar)
+		if !exists {
+			secret = argv
+		}
+		secret = value
+	}
+	return secret
 }
