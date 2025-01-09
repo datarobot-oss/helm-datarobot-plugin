@@ -25,8 +25,21 @@ $ helm datarobot sync testdata/test-chart1/ -r registry.example.com -u reg_usern
 
 Pulling image: docker.io/datarobot/test-image1:1.0.0
 Pushing image: registry.example.com/datarobot/test-image1:1.0.0
+'''
 
-'''`, "'", "`", -1),
+Authentication can be provided in various ways, including:
+
+'''sh
+export REGISTRY_USERNAME=reg_username
+export REGISTRY_PASSWORD=reg_password
+$ helm datarobot sync testdata/test-chart1/ -r registry.example.com
+'''
+
+'''sh
+$ echo "reg_password" | helm datarobot sync testdata/test-chart1/ -r registry.example.com -u reg_username --password-stdin
+'''
+
+`, "'", "`", -1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		images, err := ExtractImagesFromCharts(args)
 		if err != nil {
@@ -74,13 +87,13 @@ Pushing image: registry.example.com/datarobot/test-image1:1.0.0
 
 			if syncToken != "" {
 				auth = &authn.Bearer{
-					Token: syncToken,
+					Token: GetSecret(syncPasswordStdin, "REGISTRY_TOKEN", syncToken),
 				}
 
 			} else if syncUsername != "" && syncPassword != "" {
 				auth = &authn.Basic{
-					Username: syncUsername,
-					Password: syncPassword,
+					Username: GetSecret(false, "REGISTRY_USERNAME", syncUsername),
+					Password: GetSecret(syncPasswordStdin, "REGISTRY_PASSWORD", syncPassword),
 				}
 
 			} else {
@@ -97,13 +110,14 @@ Pushing image: registry.example.com/datarobot/test-image1:1.0.0
 }
 
 var syncReg, syncUsername, syncPassword, syncToken, syncImagePrefix, syncImageSuffix, syncImageRepo, syncTransform, caCertPath, certPath, keyPath string
-var syncDryRun, skipTlsVerify bool
+var syncDryRun, skipTlsVerify, syncPasswordStdin bool
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
 	syncCmd.Flags().StringVarP(&syncUsername, "username", "u", "", "username to auth")
 	syncCmd.Flags().StringVarP(&syncPassword, "password", "p", "", "pass to auth")
+	syncCmd.Flags().BoolVar(&syncPasswordStdin, "password-stdin", false, "Read password from stdin")
 	syncCmd.Flags().StringVarP(&syncToken, "token", "t", "", "pass to auth")
 	syncCmd.Flags().StringVarP(&syncReg, "registry", "r", "", "registry to auth")
 	syncCmd.Flags().StringVarP(&syncImagePrefix, "prefix", "", "", "append prefix on repo name")
