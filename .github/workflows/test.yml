@@ -22,8 +22,6 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-
-
     steps:
 
       - name: "checkout"
@@ -49,6 +47,3 @@ jobs:
       - name: run unit test
         run: |
           make test
-
-
-          docker run registry:2 -Bbn reg_username reg_password

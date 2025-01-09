@@ -139,7 +139,6 @@ func GetSecret(stdin bool, envVar string, argv string) string {
 		} else {
 			secret = value
 		}
-
 	}
 	return secret
 }
