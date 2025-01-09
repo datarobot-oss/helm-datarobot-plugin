@@ -48,22 +48,22 @@ jobs:
 
       - name: Run Docker Registry
         run: |
-          mkdir -p reg/certs
+          mkdir -p  reg/certs reg/auth
           cd reg
-          echo "reg_username:$apr1$unibpt68$MtVv8vPOOqY9KNus46uvU0" > ./htpasswd
+          echo "reg_username:$apr1$unibpt68$MtVv8vPOOqY9KNus46uvU0" > ./auth/htpasswd
           openssl req -newkey rsa:2048 -nodes -sha256 \
             -keyout ./certs/domain.key -x509 -days 365 \
             -out ./certs/domain.crt -subj "/CN=localhost"
 
           docker run -d -p 5000:5000 --name registry \
-            -v $(pwd)/htpasswd:/htpasswd \
-            -v $(pwd)/auth:/auth \
+            -v ./certs:/certs \
+            -v ./auth:/auth \
             -e REGISTRY_HTTP_ADDR=0.0.0.0:5000 \
             -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
             -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
             -e REGISTRY_AUTH=htpasswd \
             -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
-            -e REGISTRY_AUTH_HTPASSWD_PATH=/htpasswd \
+            -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
             registry:2
 
           docker ps
