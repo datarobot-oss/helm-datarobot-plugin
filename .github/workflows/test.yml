@@ -68,7 +68,7 @@ jobs:
 
           sleep 5
 
-          docker login -u reg_username -p reg_password localhost:5000
+          docker login -u reg_username -p reg_password https://localhost:5000
 
       - name: run unit test
         run: |
