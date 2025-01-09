@@ -50,18 +50,25 @@ jobs:
         run: |
           mkdir -p  reg/certs reg/auth
           cd reg
-          echo -n "reg_username:$2y$05$rG1Q4zETkJMkVU6MzFmKeeXV737BjB5SsV/VDe.LB5Ho3eBb0.u42" > ./auth/htpasswd
+          echo -n "admin:$2y$05$HxjHqYvivVQ5/eNQ2cD0lelNAqDGVKpCkOx4c3OgBR3wQranuGsOe" > ./auth/htpasswd
+          openssl req -newkey rsa:1024 -nodes -sha256 \
+            -keyout ./certs/domain.key -x509 -days 365 \
+            -out ./certs/domain.crt -subj "/CN=localhost"
+
           docker run -d -p 5000:5000 --name registry \
+            -v ./certs:/certs \
             -v ./auth:/auth \
             -e REGISTRY_HTTP_ADDR=0.0.0.0:5000 \
+            -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+            -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
             -e REGISTRY_AUTH=htpasswd \
             -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
             -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
-            registry:2
+            registry:2.7.0
 
           sleep 5
-          curl -u reg_username:reg_password http://localhost:5000/v2/_catalog --insecure -v
-          docker login -u reg_username -p reg_password localhost:5000
+          curl -u admin:pass https://localhost:5000/v2/_catalog --insecure -v
+          docker admin -u reg_username -p pass https://localhost:5000
 
       - name: run unit test
         run: |
