@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -25,7 +26,10 @@ Tarball created successfully: image-load.tgz`
 	})
 	t.Run("check-registry-online", func(t *testing.T) {
 		url := "https://localhost:8443/v2/"
-		resp, _ := http.Head(url)
+		resp, err := http.Head(url)
+		if err != nil {
+			fmt.Printf("The URL %s is not reachable. Error: %s\n", url, err)
+		}
 		defer resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
 			os.Setenv("REGISTRY_ONLINE", "true")
