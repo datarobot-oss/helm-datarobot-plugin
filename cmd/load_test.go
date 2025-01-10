@@ -35,11 +35,22 @@ Tarball created successfully: image-load.tgz`
 			os.Setenv("REGISTRY_ONLINE", "true")
 		}
 	})
-	t.Run("local-registry", func(t *testing.T) {
+	t.Run("local-registry-insecure", func(t *testing.T) {
 		if os.Getenv("REGISTRY_ONLINE") == "true" {
 			os.Setenv("REGISTRY_USERNAME", "admin")
 			os.Setenv("REGISTRY_PASSWORD", "pass")
 			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:8443 --insecure")
+			assert.NoError(t, err)
+			expectedLoadOutput := `Successfully pushed image localhost:8443/alpine/curl:8.9.1
+Successfully pushed image localhost:8443/busybox:1.36.1`
+			assert.Equal(t, expectedLoadOutput, output)
+		}
+	})
+	t.Run("local-registry-insecure", func(t *testing.T) {
+		if os.Getenv("REGISTRY_ONLINE") == "true" {
+			os.Setenv("REGISTRY_USERNAME", "admin")
+			os.Setenv("REGISTRY_PASSWORD", "pass")
+			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:8443 --ca-cert ../tests/registry/nginx/ssl/ca.crt")
 			assert.NoError(t, err)
 			expectedLoadOutput := `Successfully pushed image localhost:8443/alpine/curl:8.9.1
 Successfully pushed image localhost:8443/busybox:1.36.1`
