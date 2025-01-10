@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"net/http"
 	"os"
 	"testing"
 
@@ -22,6 +23,26 @@ Tarball created successfully: image-load.tgz`
 			t.Errorf("File was not created: %s", filePath)
 		}
 	})
+	t.Run("check-registry-online", func(t *testing.T) {
+		url := "https://localhost:8443/v2/"
+		resp, _ := http.Head(url)
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			os.Setenv("REGISTRY_ONLINE", "true")
+		}
+	})
+	t.Run("local-registry", func(t *testing.T) {
+		if os.Getenv("REGISTRY_ONLINE") == "true" {
+			os.Setenv("REGISTRY_USERNAME", "admin")
+			os.Setenv("REGISTRY_PASSWORD", "pass")
+			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:8443 --insecure")
+			assert.NoError(t, err)
+			expectedLoadOutput := `Successfully pushed image localhost:8443/alpine/curl:8.9.1
+Successfully pushed image localhost:8443/busybox:1.36.1`
+			assert.Equal(t, expectedLoadOutput, output)
+		}
+	})
+
 	t.Run("prefix-suffix", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "load image-load.tgz -r ttl.sh --prefix prefix --suffix suffix")
 		assert.NoError(t, err)
@@ -29,6 +50,7 @@ Tarball created successfully: image-load.tgz`
 Successfully pushed image ttl.sh/prefix/suffix/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
+
 	t.Run("repo", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "load image-load.tgz -r ocp.example.com --dry-run --repo openshift-image-registry/test ")
 		assert.NoError(t, err)

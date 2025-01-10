@@ -4,6 +4,9 @@ dist
 helm-datarobot
 **/*.tar.gz
 **/*.tgz
+/.idea/*
+.vscode
+.DS_Store
 
 # testdata Helm charts
 testdata/*/Chart.lock
