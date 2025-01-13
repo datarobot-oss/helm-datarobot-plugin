@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -25,10 +26,17 @@ Tarball created successfully: image-load.tgz`
 		}
 	})
 	t.Run("check-registry-online", func(t *testing.T) {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, // Skip verification of the self-signed certificate
+			},
+		}
+	
+		client := &http.Client{Transport: tr}
 		url := "https://localhost:8443/v2/"
 		resp, err := http.Head(url)
 		if err != nil {
-			fmt.Printf("The URL %s is not reachable. Error: %s\n", url, err)
+			t.Errorf("The URL %s is not reachable. Error: %s\n", url, err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
