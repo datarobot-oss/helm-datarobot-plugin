@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -31,7 +30,7 @@ Tarball created successfully: image-load.tgz`
 				InsecureSkipVerify: true, // Skip verification of the self-signed certificate
 			},
 		}
-	
+
 		client := &http.Client{Transport: tr}
 		url := "https://localhost:8443/v2/"
 		resp, err := http.Head(url)
