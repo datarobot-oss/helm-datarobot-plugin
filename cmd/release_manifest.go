@@ -22,11 +22,6 @@ type releaseManifestOutput struct {
 	Images map[string]releaseManifestImage `yaml:"images"`
 }
 
-type Label struct {
-	Source string `yaml:"key"`
-	Name   string `yaml:"label"`
-}
-
 type releaseManifestImage struct {
 	Source string            `yaml:"source"`
 	Name   string            `yaml:"name"`
