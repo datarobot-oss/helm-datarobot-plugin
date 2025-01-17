@@ -33,7 +33,6 @@ func TestCommandSave(t *testing.T) {
 
 		// Expected output to compare
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
-Pulling image: docker.io/alpine/curl:8.9.1
  archive alpine/curl:8.9.1.tgz already exist
 Tarball created successfully: images.tgz`
 
