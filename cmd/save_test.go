@@ -30,21 +30,15 @@ func TestCommandSave(t *testing.T) {
 		filePath := "image-test.tgz"
 		output, err := executeCommand(rootCmd, "save ../testdata/test-chart5 -a custom/images-duplicated --dry-run=false --output "+filePath)
 		assert.NoError(t, err)
-
-		// Expected output to compare
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
 Pulling image: docker.io/alpine/curl:8.9.1
- archive alpine/curl:8.9.1.tgz already exist
+ archive alpine/curl:8.9.1.tgz already exists
 Tarball created successfully: images-test.tgz`
 
 		assert.Equal(t, expectedOutput, output)
-
-		// Check if the file exists
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			t.Errorf("File was not created: %s", filePath)
 		}
-
-		// Clean up: remove the file after the test
 		err = os.Remove(filePath)
 		if err != nil {
 			t.Fatalf("Failed to remove file: %v", err)
