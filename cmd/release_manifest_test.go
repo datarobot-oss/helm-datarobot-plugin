@@ -48,7 +48,7 @@ func TestCommandReleaseManifest(t *testing.T) {
     tag: stable
   test-image30.tar.zst:
     source: docker.io/busybox:1.36.1
-    name: docker.io/busybox/busybox
+    name: docker.io/busybox
     tag: simple
   test-image31.tar.zst:
     source: docker.io/alpine/curl:8.10.0
@@ -81,7 +81,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("all-labels", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart6  -a bitnami -l org.opencontainers.image.title -l org.opencontainers.image.base.name ")
+		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart6  -a bitnami --all-labels ")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   redis.tar.zst:
