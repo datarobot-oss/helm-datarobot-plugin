@@ -28,7 +28,7 @@ func TestCommandSave(t *testing.T) {
 	t.Run("duplicated", func(t *testing.T) {
 
 		filePath := "image-test.tgz"
-		output, err := executeCommand(rootCmd, "save ../testdata/test-chart5 a custom/images-duplicated --dry-run=false --output "+filePath)
+		output, err := executeCommand(rootCmd, "save ../testdata/test-chart5 -a custom/images-duplicated --dry-run=false --output "+filePath)
 		assert.NoError(t, err)
 
 		// Expected output to compare
