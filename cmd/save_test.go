@@ -34,7 +34,7 @@ func TestCommandSave(t *testing.T) {
 		// Expected output to compare
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
  archive alpine/curl:8.9.1.tgz already exist
-Tarball created successfully: images.tgz`
+Tarball created successfully: images-test.tgz`
 
 		assert.Equal(t, expectedOutput, output)
 
@@ -53,7 +53,7 @@ Tarball created successfully: images.tgz`
 	t.Run("test-chart4", func(t *testing.T) {
 
 		filePath := "image-test.tgz"
-		output, err := executeCommand(rootCmd, "save ../testdata/test-chart4 --dry-run=false --output "+filePath)
+		output, err := executeCommand(rootCmd, "save ../testdata/test-chart4 --dry-run=false -a datarobot.com/images --output "+filePath)
 		assert.NoError(t, err)
 
 		// Expected output to compare
