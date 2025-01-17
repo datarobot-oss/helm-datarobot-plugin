@@ -14,15 +14,15 @@ func TestCommandReleaseManifest(t *testing.T) {
 		expectedOutput := `images:
   test-image1.tar.zst:
     source: docker.io/datarobotdev/test-image1:1.0.0
-    name: docker.io/datarobot/test-image1
+    name: docker.io/datarobotdev/test-image1
     tag: 1.0.0
   test-image2.tar.zst:
     source: docker.io/datarobotdev/test-image2:2.0.0
-    name: docker.io/datarobot/test-image2
+    name: docker.io/datarobotdev/test-image2
     tag: 2.0.0
   test-image3.tar.zst:
     source: docker.io/datarobotdev/test-image3:3.0.0
-    name: docker.io/datarobot/test-image3
+    name: docker.io/datarobotdev/test-image3
     tag: 3.0.0`
 		assert.Equal(t, expectedOutput, output)
 	})
@@ -33,7 +33,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 		expectedOutput := `images:
   test-image4.tar.zst:
     source: docker.io/datarobotdev/test-image4:4.0.0
-    name: docker.io/datarobot/test-image4
+    name: docker.io/datarobotdev/test-image4
     tag: 4.0.0`
 		assert.Equal(t, expectedOutput, output)
 	})
@@ -44,15 +44,15 @@ func TestCommandReleaseManifest(t *testing.T) {
 		expectedOutput := `images:
   test-image3.tar.zst:
     source: docker.io/alpine/curl:8.9.1
-    name: docker.io/datarobot/curl
+    name: docker.io/alpine/curl
     tag: stable
   test-image30.tar.zst:
     source: docker.io/busybox:1.36.1
-    name: docker.io/datarobot/busybox
+    name: docker.io/busybox/busybox
     tag: simple
   test-image31.tar.zst:
     source: docker.io/alpine/curl:8.10.0
-    name: docker.io/datarobot/curl
+    name: docker.io/alpine/curl
     tag: 8.10.0`
 
 		assert.Equal(t, expectedOutput, output)
@@ -63,7 +63,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 		expectedOutput := `images:
   test-image4.tar.zst:
     source: docker.io/datarobotdev/test-image4:4.0.0
-    name: docker.io/datarobot/test-image4
+    name: docker.io/datarobotdev/test-image4
     tag: 4.0.0`
 		assert.Equal(t, expectedOutput, output)
 	})
