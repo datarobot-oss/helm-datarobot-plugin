@@ -82,6 +82,11 @@ $ du -h images.tgz
 			}
 
 			tgzFileName := iUri.Join([]string{imageDir, iUri.ImageName}, "/") + ":" + iUri.Tag + ".tgz"
+			if _, err := os.Stat(tgzFileName); err == nil {
+				cmd.Printf(" archive %s already exists\n", tgzFileName)
+				continue
+			}
+
 			if saveDryRun {
 				cmd.Printf("[Dry-Run] adding image to tgz: %s\n", tgzFileName)
 			} else {
