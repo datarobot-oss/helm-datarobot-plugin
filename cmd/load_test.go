@@ -1,11 +1,8 @@
 package cmd
 
 import (
-	"crypto/tls"
-	"net/http"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,33 +23,15 @@ Tarball created successfully: image-load.tgz`
 		}
 	})
 	t.Run("check-registry-online", func(t *testing.T) {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // Skip verification of the self-signed certificate
-			},
-		}
+		url := "https://localhost:8443/v2/_catalog/"
+		username := "admin"
+		password := "pass"
 
-		client := &http.Client{Transport: tr}
-		url := "https://localhost:8443/v2/"
-		var resp *http.Response
-		var err error
-
-		for i := 0; i < 5; i++ {
-			resp, err = client.Head(url)
-			if err == nil && resp.StatusCode == http.StatusOK {
-				os.Setenv("REGISTRY_ONLINE", "true")
-				break
-			}
-			time.Sleep(2 * time.Second) // Wait before retrying
-		}
-
-		if err != nil {
-			t.Errorf("The URL %s is not reachable. Error: %s\n", url, err)
+		err := checkRegistryOnline(url, username, password)
+		if err == nil {
+			os.Setenv("REGISTRY_ONLINE", "true")
 		} else {
-			defer resp.Body.Close()
-			if resp.StatusCode != http.StatusOK {
-				t.Errorf("The URL %s returned status code %d\n", url, resp.StatusCode)
-			}
+			t.Fatalf("Failed to check registry online: %v", err)
 		}
 	})
 	t.Run("local-registry-insecure", func(t *testing.T) {
