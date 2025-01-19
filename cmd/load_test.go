@@ -23,7 +23,7 @@ Tarball created successfully: image-load.tgz`
 		}
 	})
 	t.Run("check-registry-online", func(t *testing.T) {
-		url := "https://localhost:8443/v2/_catalog/"
+		url := "https://localhost:5000/v2/_catalog/"
 		username := "admin"
 		password := "pass"
 
@@ -38,10 +38,10 @@ Tarball created successfully: image-load.tgz`
 		if os.Getenv("REGISTRY_ONLINE") == "true" {
 			os.Setenv("REGISTRY_USERNAME", "admin")
 			os.Setenv("REGISTRY_PASSWORD", "pass")
-			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:8443 --insecure")
+			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --insecure")
 			assert.NoError(t, err)
-			expectedLoadOutput := `Successfully pushed image localhost:8443/alpine/curl:8.9.1
-Successfully pushed image localhost:8443/busybox:1.36.1`
+			expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
+Successfully pushed image localhost:5000/busybox:1.36.1`
 			assert.Equal(t, expectedLoadOutput, output)
 		}
 	})
@@ -49,10 +49,10 @@ Successfully pushed image localhost:8443/busybox:1.36.1`
 		if os.Getenv("REGISTRY_ONLINE") == "true" {
 			os.Setenv("REGISTRY_USERNAME", "admin")
 			os.Setenv("REGISTRY_PASSWORD", "pass")
-			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:8443 --ca-cert ../tests/registry/nginx/ssl/ca.crt")
+			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --ca-cert ../tests/registry/nginx/ssl/ca.crt")
 			assert.NoError(t, err)
-			expectedLoadOutput := `Successfully pushed image localhost:8443/alpine/curl:8.9.1
-Successfully pushed image localhost:8443/busybox:1.36.1`
+			expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
+Successfully pushed image localhost:5000/busybox:1.36.1`
 			assert.Equal(t, expectedLoadOutput, output)
 		}
 	})
