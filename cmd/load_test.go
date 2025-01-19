@@ -28,33 +28,28 @@ Tarball created successfully: image-load.tgz`
 		password := "pass"
 
 		err := checkRegistryOnline(url, username, password)
-		if err == nil {
-			os.Setenv("REGISTRY_ONLINE", "true")
-		} else {
+		if err != nil {
 			t.Fatalf("Failed to check registry online: %v", err)
 		}
 	})
 	t.Run("local-registry-insecure", func(t *testing.T) {
-		if os.Getenv("REGISTRY_ONLINE") == "true" {
-			os.Setenv("REGISTRY_USERNAME", "admin")
-			os.Setenv("REGISTRY_PASSWORD", "pass")
-			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --insecure")
-			assert.NoError(t, err)
-			expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
+		os.Setenv("REGISTRY_USERNAME", "admin")
+		os.Setenv("REGISTRY_PASSWORD", "pass")
+		output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --insecure")
+		assert.NoError(t, err)
+		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
-			assert.Equal(t, expectedLoadOutput, output)
-		}
+		assert.Equal(t, expectedLoadOutput, output)
 	})
+
 	t.Run("local-registry-insecure", func(t *testing.T) {
-		if os.Getenv("REGISTRY_ONLINE") == "true" {
-			os.Setenv("REGISTRY_USERNAME", "admin")
-			os.Setenv("REGISTRY_PASSWORD", "pass")
-			output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --ca-cert ../tests/registry/nginx/ssl/ca.crt")
-			assert.NoError(t, err)
-			expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
+		os.Setenv("REGISTRY_USERNAME", "admin")
+		os.Setenv("REGISTRY_PASSWORD", "pass")
+		output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --ca-cert ../tests/registry/certs/ca.crt")
+		assert.NoError(t, err)
+		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
-			assert.Equal(t, expectedLoadOutput, output)
-		}
+		assert.Equal(t, expectedLoadOutput, output)
 	})
 
 	t.Run("prefix-suffix", func(t *testing.T) {

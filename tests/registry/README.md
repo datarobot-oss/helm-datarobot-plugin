@@ -22,5 +22,6 @@ openssl x509 -in server.crt -text -noout
 ## Docker
 
 ```
-docker login -u admin -p pass localhost:8443 --tls-verify=false
+docker compose up -d
+docker login -u admin -p pass localhost:5000 --tls-verify=false
 ```
