@@ -56,6 +56,9 @@ func GetTransport(caCertPath, certPath, keyPath string, insecureSkipVerify bool)
 func checkRegistryOnline(url, username, password string) error {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
 	}
 
 	for i := 0; i < 5; i++ {
