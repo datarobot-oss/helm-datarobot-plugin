@@ -47,6 +47,7 @@ jobs:
       - name: run registry
         run: |
           cd tests/registry
+          ./config_tls.sh
           docker compose up -d
 
       - name: run unit test
