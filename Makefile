@@ -9,12 +9,11 @@ build: clean fmt
 	@echo "Building the binary..."
 	$(GO) build -o $(APP_NAME) $(SRC_DIR)
 
-.PHONY: docs
-docs:
+docs: build
 	@echo "Building docs"
 	@rm -rf ./docs/
 	@mkdir ./docs
-	$(GO) run main.go docs --path ./docs
+	@./$(APP_NAME) docs --path ./docs
 
 pre-test:
 	@echo "Pre tests..."
