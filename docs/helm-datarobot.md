@@ -22,7 +22,7 @@ helm-datarobot [flags]
 * [helm-datarobot docs](helm-datarobot_docs.md)	 - Generate document in MarkDown format
 * [helm-datarobot generate](helm-datarobot_generate.md)	 - generate
 * [helm-datarobot images](helm-datarobot_images.md)	 - list images from a given chart
-* [helm-datarobot load](helm-datarobot_load.md)	 - load
+* [helm-datarobot load](helm-datarobot_load.md)	 - load all images from a tgz file to a specific registry
 * [helm-datarobot release-manifest](helm-datarobot_release-manifest.md)	 - release-manifest
 * [helm-datarobot save](helm-datarobot_save.md)	 - save images in single tgz file
 * [helm-datarobot sync](helm-datarobot_sync.md)	 - sync

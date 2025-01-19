@@ -13,7 +13,7 @@ docs: build
 	@echo "Building docs"
 	@rm -rf ./docs/
 	@mkdir ./docs
-	@./$(APP_NAME) docs --path ./docs
+	@go run main.go docs --path ./docs
 
 pre-test:
 	@echo "Pre tests..."
