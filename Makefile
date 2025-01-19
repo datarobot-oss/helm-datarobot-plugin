@@ -9,6 +9,7 @@ build: clean fmt
 	@echo "Building the binary..."
 	$(GO) build -o $(APP_NAME) $(SRC_DIR)
 
+.PHONY: docs
 docs:
 	@echo "Building docs"
 	@rm -rf ./docs/
