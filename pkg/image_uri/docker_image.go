@@ -91,8 +91,3 @@ func (d *DockerUri) Join(s []string, delimit string) string {
 	}
 	return strings.Join(r, delimit)
 }
-
-func (d *DockerUri) SetOrg(org string) string {
-	d.Organization = org
-	return d.Base()
-}

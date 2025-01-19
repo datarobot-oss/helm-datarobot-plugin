@@ -5,6 +5,7 @@ helm-datarobot
 **/*.tar.gz
 **/*.tgz
 /.idea/*
+=======
 .vscode
 .DS_Store
 

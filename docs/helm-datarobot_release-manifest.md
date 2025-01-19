@@ -35,8 +35,10 @@ helm-datarobot release-manifest [flags]
 ### Options
 
 ```
+      --all-labels          add all labes
   -a, --annotation string   annotation to lookup (default "datarobot.com/images")
   -h, --help                help for release-manifest
+  -l, --label stringArray   Specify labels (can be used multiple times)
       --skip-duplicated     skip duplicated images
 ```
 

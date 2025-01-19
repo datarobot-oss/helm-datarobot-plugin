@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -10,20 +12,21 @@ import (
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
+	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/spf13/cobra"
 )
 
 const ARCHIVE_EXT = ".tar.zst"
-const REL_ORG = "datarobot"
 
 type releaseManifestOutput struct {
 	Images map[string]releaseManifestImage `yaml:"images"`
 }
 
 type releaseManifestImage struct {
-	Source string `yaml:"source"`
-	Name   string `yaml:"name"`
-	Tag    string `yaml:"tag"`
+	Source string            `yaml:"source"`
+	Name   string            `yaml:"name"`
+	Tag    string            `yaml:"tag"`
+	Labels map[string]string `yaml:"labels,omitempty"`
 }
 
 func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplicated bool) (map[string]releaseManifestImage, error) {
@@ -40,8 +43,32 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 		}
 		rmi := releaseManifestImage{
 			Source: iUri.String(),
-			Name:   iUri.SetOrg(REL_ORG),
+			Name:   iUri.Base(),
 			Tag:    imageTag,
+		}
+
+		if len(addLabels) > 0 || addAllLabels {
+			allLabels, err := ExtractLabels(iUri.String())
+			if err != nil {
+				log.Fatalf("Error extracting labels: %v", err)
+			}
+			reqLabel := make(map[string]string)
+			if len(allLabels) > 0 {
+				for _, label := range addLabels {
+					if value, exists := allLabels[label]; exists {
+						reqLabel[label] = value
+					} else {
+						fmt.Printf("%s: %s\n", label, value)
+					}
+				}
+			}
+
+			if addAllLabels {
+				rmi.Labels = allLabels
+			} else {
+				rmi.Labels = reqLabel
+			}
+
 		}
 
 		archiveName := image.Name + ARCHIVE_EXT
@@ -59,6 +86,43 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 		result[archiveName] = rmi
 	}
 	return result, nil
+}
+
+// It fetches the image configuration metadata without pulling the full image.
+func ExtractLabels(imageName string) (map[string]string, error) {
+	// Get the raw configuration JSON from the registry
+	configJSON, err := crane.Config(imageName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image config: %w", err)
+	}
+
+	// Parse the JSON into a map
+	var configData map[string]interface{}
+	if err := json.Unmarshal(configJSON, &configData); err != nil {
+		return nil, fmt.Errorf("failed to parse image config JSON: %w", err)
+	}
+
+	// Navigate to the labels in the config
+	config, ok := configData["config"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to extract 'config' section from image config")
+	}
+
+	labels, ok := config["Labels"].(map[string]interface{})
+	if !ok || labels == nil {
+		// Return an empty map if no labels are found
+		return map[string]string{}, nil
+	}
+
+	// Convert labels to a string map
+	labelMap := make(map[string]string)
+	for key, value := range labels {
+		if strValue, ok := value.(string); ok {
+			labelMap[key] = strValue
+		}
+	}
+
+	return labelMap, nil
 }
 
 func deduplicate(images []chartutil.DatarobotImageDeclaration) []chartutil.DatarobotImageDeclaration {
@@ -161,10 +225,13 @@ images:
 	},
 }
 
-var skipDuplicated bool
+var skipDuplicated, addAllLabels bool
+var addLabels []string
 
 func init() {
 	rootCmd.AddCommand(releaseManifestCmd)
 	releaseManifestCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
 	releaseManifestCmd.Flags().BoolVarP(&skipDuplicated, "skip-duplicated", "", false, "skip duplicated images")
+	releaseManifestCmd.Flags().BoolVarP(&addAllLabels, "all-labels", "", false, "add all labes")
+	releaseManifestCmd.Flags().StringArrayVarP(&addLabels, "label", "l", []string{}, "Specify labels (can be used multiple times)")
 }
