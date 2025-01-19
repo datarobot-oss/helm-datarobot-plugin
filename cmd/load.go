@@ -18,7 +18,7 @@ import (
 
 var loadCmd = &cobra.Command{
 	Use:          "load",
-	Short:        "load",
+	Short:        "load all images from a tgz file to a specific registry",
 	SilenceUsage: true,
 	Long: strings.Replace(`
 

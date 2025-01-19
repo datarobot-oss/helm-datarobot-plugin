@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	dr_chartutil "github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	v1 "k8s.io/api/apps/v1"
@@ -50,6 +51,42 @@ func GetTransport(caCertPath, certPath, keyPath string, insecureSkipVerify bool)
 			InsecureSkipVerify: insecureSkipVerify,
 		},
 	}, nil
+}
+
+func checkRegistryOnline(url, username, password string) error {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	for i := 0; i < 5; i++ {
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err
+		}
+
+		req.SetBasicAuth(username, password)
+
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Printf("Attempt %d: Failed to reach registry: %v\n", i+1, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			fmt.Println("Registry is online.")
+			return nil
+		}
+
+		fmt.Printf("Attempt %d: Registry returned status code %d\n", i+1, resp.StatusCode)
+		time.Sleep(2 * time.Second)
+	}
+
+	return fmt.Errorf("registry is not online after 5 attempts")
 }
 
 // isImageDeclared checks if the image is in the declared imagedoc list

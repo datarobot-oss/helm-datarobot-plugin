@@ -1,6 +1,6 @@
 ## helm-datarobot load
 
-load
+load all images from a tgz file to a specific registry
 
 ### Synopsis
 

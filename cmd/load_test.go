@@ -22,6 +22,36 @@ Tarball created successfully: image-load.tgz`
 			t.Errorf("File was not created: %s", filePath)
 		}
 	})
+	t.Run("check-registry-online", func(t *testing.T) {
+		url := "https://localhost:5000/v2/_catalog/"
+		username := "admin"
+		password := "pass"
+
+		err := checkRegistryOnline(url, username, password)
+		if err != nil {
+			t.Fatalf("Failed to check registry online: %v", err)
+		}
+	})
+	t.Run("local-registry-insecure", func(t *testing.T) {
+		os.Setenv("REGISTRY_USERNAME", "admin")
+		os.Setenv("REGISTRY_PASSWORD", "pass")
+		output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --insecure")
+		assert.NoError(t, err)
+		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
+Successfully pushed image localhost:5000/busybox:1.36.1`
+		assert.Equal(t, expectedLoadOutput, output)
+	})
+
+	t.Run("local-registry-insecure", func(t *testing.T) {
+		os.Setenv("REGISTRY_USERNAME", "admin")
+		os.Setenv("REGISTRY_PASSWORD", "pass")
+		output, err := executeCommand(rootCmd, "load image-load.tgz -r localhost:5000 --ca-cert ../tests/registry/certs/ca.crt")
+		assert.NoError(t, err)
+		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
+Successfully pushed image localhost:5000/busybox:1.36.1`
+		assert.Equal(t, expectedLoadOutput, output)
+	})
+
 	t.Run("prefix-suffix", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "load image-load.tgz -r ttl.sh --prefix prefix --suffix suffix")
 		assert.NoError(t, err)
@@ -29,6 +59,7 @@ Tarball created successfully: image-load.tgz`
 Successfully pushed image ttl.sh/prefix/suffix/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
+
 	t.Run("repo", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "load image-load.tgz -r ocp.example.com --dry-run --repo openshift-image-registry/test ")
 		assert.NoError(t, err)
