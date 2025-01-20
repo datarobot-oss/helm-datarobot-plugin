@@ -10,7 +10,7 @@ This command is designed to save all images as part of the release manifest in s
 
 Example:
 ```sh
-$ helm datarobot save testdata/test-chart1/
+$ helm datarobot save tests/charts/test-chart1/
 Pulling image: docker.io/datarobot/test-image1:1.0.0
 ....
 Pulling image: docker.io/datarobot/test-image2:2.0.0

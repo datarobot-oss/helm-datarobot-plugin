@@ -27,7 +27,7 @@ image:
   tag: stable
 `)()
 
-	values, err := RenderChart("../../testdata/test-chart6/", []string{valuesFile}, []string{})
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile}, []string{})
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -85,7 +85,7 @@ resources:
     cpu: 200m
 `)()
 
-	values, err := RenderChart("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, []string{})
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, []string{})
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -144,7 +144,7 @@ resources:
 `)()
 
 	setValues := []string{"replicaCount=3"}
-	values, err := RenderChart("../../testdata/test-chart6/", []string{valuesFile1, valuesFile2}, setValues)
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, setValues)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -186,7 +186,7 @@ spec:
 // TestRenderChartEmptyFilesInputSet
 func TestRenderChartEmptyFilesInputSet(t *testing.T) {
 	setValues := []string{"replicaCount=3", "image.tag=inputset"}
-	values, err := RenderChart("../../testdata/test-chart6/", []string{}, setValues)
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{}, setValues)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml

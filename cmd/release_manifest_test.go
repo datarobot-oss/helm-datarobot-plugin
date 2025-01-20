@@ -8,7 +8,7 @@ import (
 
 func TestCommandReleaseManifest(t *testing.T) {
 	t.Run("Test test-chart1", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart1 -a \"datarobot.com/images\"")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart1 -a \"datarobot.com/images\"")
 		assert.NoError(t, err)
 		// Expected output to compare
 		expectedOutput := `images:
@@ -28,7 +28,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 	})
 
 	t.Run("Test test-chart4", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart4 -a \"custom/images\"")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart4 -a \"custom/images\"")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   test-image4.tar.zst:
@@ -39,7 +39,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 	})
 
 	t.Run("Test test-chart4-datarobot", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart4 -a \"datarobot.com/images\"")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart4 -a \"datarobot.com/images\"")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   test-image3.tar.zst:
@@ -58,7 +58,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("Test test-chart4-duplicated", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart4 -a \"custom/images-duplicated\"")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart4 -a \"custom/images-duplicated\"")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   test-image4.tar.zst:
@@ -68,7 +68,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("selected-labels", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart6  -a bitnami -l org.opencontainers.image.title -l org.opencontainers.image.base.name ")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart6  -a bitnami -l org.opencontainers.image.title -l org.opencontainers.image.base.name ")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   redis.tar.zst:
@@ -81,7 +81,7 @@ func TestCommandReleaseManifest(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("all-labels", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../testdata/test-chart6  -a bitnami --all-labels ")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart6  -a bitnami --all-labels ")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   redis.tar.zst:

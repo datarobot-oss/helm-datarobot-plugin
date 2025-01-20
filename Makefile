@@ -17,9 +17,9 @@ docs: build
 
 pre-test:
 	@echo "Pre tests..."
-	@helm dependency update testdata/test-chart3
-	@helm dependency update testdata/test-chart2
-	@helm dependency update testdata/test-chart1
+	@helm dependency update tests/charts/test-chart3
+	@helm dependency update tests/charts/test-chart2
+	@helm dependency update tests/charts/test-chart1
 
 test: pre-test
 	@echo "Running tests..."

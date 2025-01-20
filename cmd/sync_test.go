@@ -8,7 +8,7 @@ import (
 
 func TestCommandSyncLive(t *testing.T) {
 	t.Run("test-chart4 ttl.sh", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync ../testdata/test-chart4 -r ttl.sh --dry-run=false -a datarobot.com/images")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -r ttl.sh --dry-run=false -a datarobot.com/images")
 		assert.NoError(t, err)
 		// Expected output to compare
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
@@ -30,7 +30,7 @@ Pushing image: ttl.sh/alpine/curl:8.10.0`
 	// 		_ = os.Setenv("HTTPS_PROXY", "http:/47.89.184.18:3128")
 
 	// 		// Set arguments for the command (simulate CLI input)
-	// 		arg := "sync ../testdata/test-chart4 -r ttl.sh --dry-run=false"
+	// 		arg := "sync ../tests/charts/test-chart4 -r ttl.sh --dry-run=false"
 	// 		rootCmd.SetArgs(strings.Fields(arg))
 
 	// 		// Execute command while capturing output
@@ -56,7 +56,7 @@ Pushing image: ttl.sh/alpine/curl:8.10.0`
 
 func TestCommandSync(t *testing.T) {
 	t.Run("test-chart4", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync ../testdata/test-chart4 -r registry.example.com -u testuser -p testpass --dry-run")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -r registry.example.com -u testuser -p testpass --dry-run")
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.1
 [Dry-Run] Pushing image: registry.example.com/alpine/curl:stable
@@ -70,7 +70,7 @@ func TestCommandSync(t *testing.T) {
 	})
 
 	t.Run("test-chart4/prefix-suffix", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync ../testdata/test-chart4 -r registry.example.com --dry-run -a custom/images --prefix prefix --suffix suffix ")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -r registry.example.com --dry-run -a custom/images --prefix prefix --suffix suffix ")
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/datarobotdev/test-image4:4.0.0
 [Dry-Run] Pushing image: registry.example.com/prefix/datarobotdev/suffix/test-image4:4.0.0`
@@ -78,7 +78,7 @@ func TestCommandSync(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("test-chart4/repo", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync ../testdata/test-chart4 -r ocp.example.com --dry-run -a custom/images --repo openshift-image-registry/test ")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -r ocp.example.com --dry-run -a custom/images --repo openshift-image-registry/test ")
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/datarobotdev/test-image4:4.0.0
 [Dry-Run] Pushing image: ocp.example.com/openshift-image-registry/test/test-image4:4.0.0`

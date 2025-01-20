@@ -10,7 +10,7 @@ This command is designed to sync directly all images as part of the release mani
 
 Example:
 ```sh
-$ helm datarobot sync testdata/test-chart1/ -r registry.example.com -u reg_username -p reg_password
+$ helm datarobot sync tests/charts/test-chart1/ -r registry.example.com -u reg_username -p reg_password
 
 Pulling image: docker.io/datarobot/test-image1:1.0.0
 Pushing image: registry.example.com/datarobot/test-image1:1.0.0
@@ -21,11 +21,11 @@ Authentication can be provided in various ways, including:
 ```sh
 export REGISTRY_USERNAME=reg_username
 export REGISTRY_PASSWORD=reg_password
-$ helm datarobot sync testdata/test-chart1/ -r registry.example.com
+$ helm datarobot sync tests/charts/test-chart1/ -r registry.example.com
 ```
 
 ```sh
-$ echo "reg_password" | helm datarobot sync testdata/test-chart1/ -r registry.example.com -u reg_username --password-stdin
+$ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registry.example.com -u reg_username --password-stdin
 ```
 
 

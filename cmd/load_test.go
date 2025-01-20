@@ -10,7 +10,7 @@ import (
 func TestCommandLoad(t *testing.T) {
 	t.Run("gen-tarball", func(t *testing.T) {
 		filePath := "image-load.tgz"
-		output, err := executeCommand(rootCmd, "save ../testdata/test-chart4 -a custom/loadimages --output "+filePath)
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 -a custom/loadimages --output "+filePath)
 		assert.NoError(t, err)
 		expectedSaveOutput := `Pulling image: docker.io/alpine/curl:8.9.1
 Pulling image: docker.io/busybox:1.36.1

@@ -10,7 +10,7 @@ it supports more than 1 chart, so we can produce a single manifest and other umb
 
 Example:
 ```sh
-$ helm datarobot release-manifest testdata/test-chart1/
+$ helm datarobot release-manifest tests/charts/test-chart1/
 images:
 	test-image1.tar.zst:
 		source: docker.io/datarobotdev/test-image1:1.0.0

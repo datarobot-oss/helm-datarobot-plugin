@@ -11,7 +11,7 @@ func TestCommandSave(t *testing.T) {
 
 	t.Run("test-chart4-dry-run", func(t *testing.T) {
 
-		output, err := executeCommand(rootCmd, "save ../testdata/test-chart4 -a custom/images-duplicated --dry-run --output test.tgz -a \"datarobot.com/images\"")
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 -a custom/images-duplicated --dry-run --output test.tgz -a \"datarobot.com/images\"")
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.1
 [Dry-Run] ReTagging image: docker.io/alpine/curl:8.9.1 > docker.io/alpine/curl:stable
@@ -28,7 +28,7 @@ func TestCommandSave(t *testing.T) {
 	t.Run("duplicated", func(t *testing.T) {
 
 		filePath := "image-test.tgz"
-		output, err := executeCommand(rootCmd, "save ../testdata/test-chart5 -a custom/images-duplicated --dry-run=false --output "+filePath)
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart5 -a custom/images-duplicated --dry-run=false --output "+filePath)
 		assert.NoError(t, err)
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
 Pulling image: docker.io/alpine/curl:8.9.1
@@ -48,7 +48,7 @@ Tarball created successfully: image-test.tgz`
 	t.Run("test-chart4", func(t *testing.T) {
 
 		filePath := "image-test.tgz"
-		output, err := executeCommand(rootCmd, "save ../testdata/test-chart4 --dry-run=false -a datarobot.com/images --output "+filePath)
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 --dry-run=false -a datarobot.com/images --output "+filePath)
 		assert.NoError(t, err)
 
 		// Expected output to compare

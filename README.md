@@ -97,7 +97,7 @@ required packages in [Brewfile](./Brewfile).
     ```
     ./helm-datarobot help
     ```
-3. One can use Helm charts located under testdata for trying the tool.
+3. One can use Helm charts located under tests/charts for trying the tool.
 
 ### Running tests locally
 

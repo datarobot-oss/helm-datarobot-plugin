@@ -12,7 +12,7 @@ releases automatically.
 
 Example:
 ```sh
-$ yq ".annotations" testdata/test-chart1/Chart.yaml
+$ yq ".annotations" tests/charts/test-chart1/Chart.yaml
 datarobot.com/images: |
 - name: test-image1
 image: docker.io/datarobotdev/test-image1:{{.Chart.AppVersion}}
@@ -26,7 +26,7 @@ Subcommand `images` parses, combines and returns `datarobot.com/images`
 annotations of a chart and its subcharts, e.g.:
 
 ```sh
-$ helm datarobot images testdata/test-chart1
+$ helm datarobot images tests/charts/test-chart1
 - name: test-image1
 image: docker.io/datarobotdev/test-image1:1.0.0
 - name: test-image2

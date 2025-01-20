@@ -8,9 +8,9 @@ helm-datarobot
 .vscode
 .DS_Store
 
-# testdata Helm charts
-testdata/*/Chart.lock
-testdata/*/charts/
+# tests/charts Helm charts
+tests/charts/*/Chart.lock
+tests/charts/*/charts/
 
 # test results
 release_description.md
