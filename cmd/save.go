@@ -82,6 +82,7 @@ $ du -h images.tgz
 			}
 
 			tgzFileName := iUri.Join([]string{imageDir, iUri.ImageName}, "/") + ":" + iUri.Tag + ".tgz"
+			tgzFiles = append(tgzFiles, tgzFileName)
 			if _, err := os.Stat(tgzFileName); err == nil {
 				cmd.Printf(" archive %s already exists\n", tgzFileName)
 				continue
@@ -98,13 +99,12 @@ $ du -h images.tgz
 					return fmt.Errorf("Error writing image %s to tarball: %v\n", iUri.String(), err)
 				}
 			}
-			tgzFiles = append(tgzFiles, tgzFileName)
 
 		}
 		if !saveDryRun {
-			err = CreateZST(saveOutput, tgzFiles)
+			err = createTarball(saveOutput, tgzFiles)
 			if err != nil {
-				return fmt.Errorf("Error CreateZST: %v\n", err)
+				return fmt.Errorf("Error createTarball: %v\n", err)
 			}
 			err = deleteTmpFiles(tgzFiles)
 			if err != nil {
@@ -131,7 +131,7 @@ func init() {
 }
 
 // CreateZST creates a .zst archive from the specified input TGZ files
-func CreateZST(outputPath string, inputTGZPaths []string) error {
+func createTarball(outputPath string, inputTGZPaths []string) error {
 	outFile, err := os.Create(outputPath)
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func CreateZST(outputPath string, inputTGZPaths []string) error {
 	defer tarWriter.Close()
 
 	for _, tgzPath := range inputTGZPaths {
-		err := addFileToArchive(tarWriter, tgzPath)
+		err := addFileToTarball(tarWriter, tgzPath)
 		if err != nil {
 			return err
 		}
@@ -158,7 +158,7 @@ func CreateZST(outputPath string, inputTGZPaths []string) error {
 	return nil
 }
 
-func addFileToArchive(tarWriter *tar.Writer, filePath string) error {
+func addFileToTarball(tarWriter *tar.Writer, filePath string) error {
 	// Open the file to be added
 	file, err := os.Open(filePath)
 	if err != nil {
