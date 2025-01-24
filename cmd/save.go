@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
@@ -103,7 +104,11 @@ $ du -h images.tgz
 		if !saveDryRun {
 			err = CreateZST(saveOutput, tgzFiles)
 			if err != nil {
-				return fmt.Errorf("Error: %v\n", err)
+				return fmt.Errorf("Error CreateZST: %v\n", err)
+			}
+			err = deleteTmpFiles(tgzFiles)
+			if err != nil {
+				return fmt.Errorf("Error deleteTmpFiles: %v\n", err)
 			}
 		}
 		if saveDryRun {
@@ -144,15 +149,9 @@ func CreateZST(outputPath string, inputTGZPaths []string) error {
 	defer tarWriter.Close()
 
 	for _, tgzPath := range inputTGZPaths {
-		fmt.Printf("Adding %s to tarball\n", tgzPath)
 		err := addFileToArchive(tarWriter, tgzPath)
 		if err != nil {
 			return err
-		} else {
-			err = os.Remove(tgzPath)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -189,6 +188,42 @@ func addFileToArchive(tarWriter *tar.Writer, filePath string) error {
 	_, err = io.Copy(tarWriter, file)
 	if err != nil {
 		return fmt.Errorf("failed to write file %s to tar: %w", filePath, err)
+	}
+
+	return nil
+}
+
+func deleteTmpFiles(filePaths []string) error {
+	// Create a map to track directories to be checked for emptiness
+	directoriesToCheck := make(map[string]struct{})
+
+	for _, filePath := range filePaths {
+		// Check if the file exists
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			return fmt.Errorf("file does not exist: %s", filePath)
+		}
+
+		// Get the directory of the file
+		dir := filepath.Dir(filePath)
+		directoriesToCheck[dir] = struct{}{} // Mark the directory for checking later
+
+		// Delete the file
+		err := os.Remove(filePath)
+		if err != nil {
+			return fmt.Errorf("error deleting file %s: %v", filePath, err)
+		}
+	}
+
+	// Check each directory to see if it is empty and delete it if so
+	for dir := range directoriesToCheck {
+		if dir == "." {
+			// Skip the current directory
+			continue
+		}
+		err := os.Remove(dir)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("error deleting directory %s: %v", dir, err)
+		}
 	}
 
 	return nil
