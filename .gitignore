@@ -4,6 +4,7 @@ dist
 helm-datarobot
 **/*.tar.gz
 **/*.tgz
+**/*.zst
 /.idea/*
 .vscode
 .DS_Store

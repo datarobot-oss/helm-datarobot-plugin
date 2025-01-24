@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
@@ -14,6 +12,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
+	"github.com/klauspost/compress/zstd"
 	"github.com/spf13/cobra"
 )
 
@@ -102,7 +101,7 @@ $ du -h images.tgz
 
 		}
 		if !saveDryRun {
-			err = CreateTGZ(saveOutput, tgzFiles)
+			err = CreateZST(saveOutput, tgzFiles)
 			if err != nil {
 				return fmt.Errorf("Error: %v\n", err)
 			}
@@ -122,79 +121,74 @@ var saveDryRun bool
 func init() {
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tgz", "file to save")
+	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tar.zst", "file to save")
 	saveCmd.Flags().BoolVarP(&saveDryRun, "dry-run", "", false, "Perform a dry run without making changes")
 }
 
-func CreateTGZ(outputPath string, inputTGZPaths []string) error {
-	// Open the output file for writing
-	outputFile, err := os.Create(outputPath)
+// CreateZST creates a .zst archive from the specified input TGZ files
+func CreateZST(outputPath string, inputTGZPaths []string) error {
+	outFile, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("failed to create output file: %v", err)
+		return err
 	}
-	defer outputFile.Close()
+	defer outFile.Close()
 
-	// Create a gzip writer
-	gzipWriter := gzip.NewWriter(outputFile)
-	defer gzipWriter.Close()
+	encoder, err := zstd.NewWriter(outFile)
+	if err != nil {
+		return err
+	}
+	defer encoder.Close()
 
-	// Create a tar writer
-	tarWriter := tar.NewWriter(gzipWriter)
+	// Create a new tar writer
+	tarWriter := tar.NewWriter(encoder)
 	defer tarWriter.Close()
 
-	// Iterate over the list of input tgz paths
 	for _, tgzPath := range inputTGZPaths {
-		// Open the tgz file
-		tgzFile, err := os.Open(tgzPath)
+		fmt.Printf("Adding %s to tarball\n", tgzPath)
+		err := addFileToArchive(tarWriter, tgzPath)
 		if err != nil {
-			return fmt.Errorf("failed to open tgz file %q: %v", tgzPath, err)
-		}
-		defer tgzFile.Close()
-
-		// Extract file information (like name and size)
-		fileInfo, err := tgzFile.Stat()
-		if err != nil {
-			return fmt.Errorf("failed to get file info for %q: %v", tgzPath, err)
-		}
-
-		// Create a tar header for the tgz file
-		header := &tar.Header{
-			Name: tgzPath,
-			Size: fileInfo.Size(),
-			Mode: int64(fileInfo.Mode()),
-		}
-
-		// Write the header for the tgz file to the tar archive
-		err = tarWriter.WriteHeader(header)
-		if err != nil {
-			return fmt.Errorf("failed to write tar header: %v", err)
-		}
-
-		// Copy the content of the tgz file to the tar archive
-		_, err = io.Copy(tarWriter, tgzFile)
-		if err != nil {
-			return fmt.Errorf("failed to copy tgz file content: %v", err)
-		}
-
-		// Delete the tgz file
-		err = os.Remove(tgzPath)
-		if err != nil {
-			return fmt.Errorf("failed to delete tgz file %q: %v", tgzPath, err)
-		}
-
-		dirPath := filepath.Dir(tgzPath)
-		// Read the contents of the directory
-		entries, err := os.ReadDir(dirPath)
-		if err != nil {
-			return fmt.Errorf("error reading directory: %s", err)
-		}
-		if len(entries) == 0 {
-			// Remove the directory if empty
-			err = os.Remove(dirPath)
+			return err
+		} else {
+			err = os.Remove(tgzPath)
 			if err != nil {
-				return fmt.Errorf("error deleting directory: %s", err)
+				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func addFileToArchive(tarWriter *tar.Writer, filePath string) error {
+	// Open the file to be added
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", filePath, err)
+	}
+	defer file.Close()
+
+	// Get the file info
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file %s: %w", filePath, err)
+	}
+
+	// Create a tar header
+	header, err := tar.FileInfoHeader(fileInfo, "")
+	if err != nil {
+		return fmt.Errorf("failed to create tar header for file %s: %w", filePath, err)
+	}
+
+	// Write the header to the tar writer
+	err = tarWriter.WriteHeader(header)
+	if err != nil {
+		return fmt.Errorf("failed to write header for file %s: %w", filePath, err)
+	}
+
+	// Copy the file data to the tar writer
+	_, err = io.Copy(tarWriter, file)
+	if err != nil {
+		return fmt.Errorf("failed to write file %s to tar: %w", filePath, err)
 	}
 
 	return nil
