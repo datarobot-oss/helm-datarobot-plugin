@@ -200,7 +200,7 @@ func deleteTmpFiles(filePaths []string) error {
 	for _, filePath := range filePaths {
 		// Check if the file exists
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			return fmt.Errorf("file does not exist: %s", filePath)
+			continue
 		}
 
 		// Get the directory of the file

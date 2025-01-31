@@ -5,6 +5,7 @@ helm-datarobot
 **/*.tar.gz
 **/*.tgz
 **/*.zst
+tests/registry/certs/*
 /.idea/*
 .vscode
 .DS_Store
