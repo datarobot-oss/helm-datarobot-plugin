@@ -32,9 +32,9 @@ Pulling image: docker.io/datarobot/test-image1:1.0.0
 ....
 Pulling image: docker.io/datarobot/test-image2:2.0.0
 ....
-Tarball created successfully: images.tgz
-$ du -h images.tgz
-14M    images.tgz
+Tarball created successfully: images.tar.zst
+$ du -h images.tar.zst
+14M    images.tar.zst
 
 '''`, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
@@ -171,13 +171,11 @@ func addFileToTarball(tarWriter *tar.Writer, filePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to stat file %s: %w", filePath, err)
 	}
-
-	// Create a tar header
-	header, err := tar.FileInfoHeader(fileInfo, "")
-	if err != nil {
-		return fmt.Errorf("failed to create tar header for file %s: %w", filePath, err)
+	header := &tar.Header{
+		Name: filePath,
+		Size: fileInfo.Size(),
+		Mode: int64(fileInfo.Mode()),
 	}
-
 	// Write the header to the tar writer
 	err = tarWriter.WriteHeader(header)
 	if err != nil {
