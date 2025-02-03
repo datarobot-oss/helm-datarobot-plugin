@@ -15,9 +15,9 @@ Pulling image: docker.io/datarobot/test-image1:1.0.0
 ....
 Pulling image: docker.io/datarobot/test-image2:2.0.0
 ....
-Tarball created successfully: images.tgz
-$ du -h images.tgz
-14M    images.tgz
+Tarball created successfully: images.tar.zst
+$ du -h images.tar.zst
+14M    images.tar.zst
 
 ```
 
@@ -31,7 +31,7 @@ helm-datarobot save [flags]
   -a, --annotation string   annotation to lookup (default "datarobot.com/images")
       --dry-run             Perform a dry run without making changes
   -h, --help                help for save
-  -o, --output string       file to save (default "images.tgz")
+  -o, --output string       file to save (default "images.tar.zst")
 ```
 
 ### SEE ALSO

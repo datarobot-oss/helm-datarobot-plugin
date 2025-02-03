@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
+	"github.com/klauspost/compress/zstd"
 	"github.com/spf13/cobra"
 )
 
@@ -32,9 +32,9 @@ Pulling image: docker.io/datarobot/test-image1:1.0.0
 ....
 Pulling image: docker.io/datarobot/test-image2:2.0.0
 ....
-Tarball created successfully: images.tgz
-$ du -h images.tgz
-14M    images.tgz
+Tarball created successfully: images.tar.zst
+$ du -h images.tar.zst
+14M    images.tar.zst
 
 '''`, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
@@ -82,6 +82,7 @@ $ du -h images.tgz
 			}
 
 			tgzFileName := iUri.Join([]string{imageDir, iUri.ImageName}, "/") + ":" + iUri.Tag + ".tgz"
+			tgzFiles = append(tgzFiles, tgzFileName)
 			if _, err := os.Stat(tgzFileName); err == nil {
 				cmd.Printf(" archive %s already exists\n", tgzFileName)
 				continue
@@ -98,13 +99,16 @@ $ du -h images.tgz
 					return fmt.Errorf("Error writing image %s to tarball: %v\n", iUri.String(), err)
 				}
 			}
-			tgzFiles = append(tgzFiles, tgzFileName)
 
 		}
 		if !saveDryRun {
-			err = CreateTGZ(saveOutput, tgzFiles)
+			err = createTarball(saveOutput, tgzFiles)
 			if err != nil {
-				return fmt.Errorf("Error: %v\n", err)
+				return fmt.Errorf("Error createTarball: %v\n", err)
+			}
+			err = deleteTmpFiles(tgzFiles)
+			if err != nil {
+				return fmt.Errorf("Error deleteTmpFiles: %v\n", err)
 			}
 		}
 		if saveDryRun {
@@ -122,78 +126,101 @@ var saveDryRun bool
 func init() {
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tgz", "file to save")
+	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tar.zst", "file to save")
 	saveCmd.Flags().BoolVarP(&saveDryRun, "dry-run", "", false, "Perform a dry run without making changes")
 }
 
-func CreateTGZ(outputPath string, inputTGZPaths []string) error {
-	// Open the output file for writing
-	outputFile, err := os.Create(outputPath)
+// CreateZST creates a .zst archive from the specified input TGZ files
+func createTarball(outputPath string, inputTGZPaths []string) error {
+	outFile, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("failed to create output file: %v", err)
+		return err
 	}
-	defer outputFile.Close()
+	defer outFile.Close()
 
-	// Create a gzip writer
-	gzipWriter := gzip.NewWriter(outputFile)
-	defer gzipWriter.Close()
+	encoder, err := zstd.NewWriter(outFile)
+	if err != nil {
+		return err
+	}
+	defer encoder.Close()
 
-	// Create a tar writer
-	tarWriter := tar.NewWriter(gzipWriter)
+	// Create a new tar writer
+	tarWriter := tar.NewWriter(encoder)
 	defer tarWriter.Close()
 
-	// Iterate over the list of input tgz paths
 	for _, tgzPath := range inputTGZPaths {
-		// Open the tgz file
-		tgzFile, err := os.Open(tgzPath)
+		err := addFileToTarball(tarWriter, tgzPath)
 		if err != nil {
-			return fmt.Errorf("failed to open tgz file %q: %v", tgzPath, err)
+			return err
 		}
-		defer tgzFile.Close()
+	}
 
-		// Extract file information (like name and size)
-		fileInfo, err := tgzFile.Stat()
+	return nil
+}
+
+func addFileToTarball(tarWriter *tar.Writer, filePath string) error {
+	// Open the file to be added
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", filePath, err)
+	}
+	defer file.Close()
+
+	// Get the file info
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file %s: %w", filePath, err)
+	}
+	header := &tar.Header{
+		Name: filePath,
+		Size: fileInfo.Size(),
+		Mode: int64(fileInfo.Mode()),
+	}
+	// Write the header to the tar writer
+	err = tarWriter.WriteHeader(header)
+	if err != nil {
+		return fmt.Errorf("failed to write header for file %s: %w", filePath, err)
+	}
+
+	// Copy the file data to the tar writer
+	_, err = io.Copy(tarWriter, file)
+	if err != nil {
+		return fmt.Errorf("failed to write file %s to tar: %w", filePath, err)
+	}
+
+	return nil
+}
+
+func deleteTmpFiles(filePaths []string) error {
+	// Create a map to track directories to be checked for emptiness
+	directoriesToCheck := make(map[string]struct{})
+
+	for _, filePath := range filePaths {
+		// Check if the file exists
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			continue
+		}
+
+		// Get the directory of the file
+		dir := filepath.Dir(filePath)
+		directoriesToCheck[dir] = struct{}{} // Mark the directory for checking later
+
+		// Delete the file
+		err := os.Remove(filePath)
 		if err != nil {
-			return fmt.Errorf("failed to get file info for %q: %v", tgzPath, err)
+			return fmt.Errorf("error deleting file %s: %v", filePath, err)
 		}
+	}
 
-		// Create a tar header for the tgz file
-		header := &tar.Header{
-			Name: tgzPath,
-			Size: fileInfo.Size(),
-			Mode: int64(fileInfo.Mode()),
+	// Check each directory to see if it is empty and delete it if so
+	for dir := range directoriesToCheck {
+		if dir == "." {
+			// Skip the current directory
+			continue
 		}
-
-		// Write the header for the tgz file to the tar archive
-		err = tarWriter.WriteHeader(header)
-		if err != nil {
-			return fmt.Errorf("failed to write tar header: %v", err)
-		}
-
-		// Copy the content of the tgz file to the tar archive
-		_, err = io.Copy(tarWriter, tgzFile)
-		if err != nil {
-			return fmt.Errorf("failed to copy tgz file content: %v", err)
-		}
-
-		// Delete the tgz file
-		err = os.Remove(tgzPath)
-		if err != nil {
-			return fmt.Errorf("failed to delete tgz file %q: %v", tgzPath, err)
-		}
-
-		dirPath := filepath.Dir(tgzPath)
-		// Read the contents of the directory
-		entries, err := os.ReadDir(dirPath)
-		if err != nil {
-			return fmt.Errorf("error reading directory: %s", err)
-		}
-		if len(entries) == 0 {
-			// Remove the directory if empty
-			err = os.Remove(dirPath)
-			if err != nil {
-				return fmt.Errorf("error deleting directory: %s", err)
-			}
+		err := os.Remove(dir)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("error deleting directory %s: %v", dir, err)
 		}
 	}
 

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
+	"github.com/klauspost/compress/zstd"
 	"github.com/spf13/cobra"
 )
 
@@ -47,23 +47,23 @@ $ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		tgzPath := args[0]
+		zstFile := args[0]
 		// Open the tgz file
-		file, err := os.Open(tgzPath)
+		file, err := os.Open(zstFile)
 		if err != nil {
-			return fmt.Errorf("failed to open tgz file %q: %v", tgzPath, err)
+			return fmt.Errorf("failed to open tgz file %q: %v", zstFile, err)
 		}
 		defer file.Close()
 
-		// Create a gzip reader
-		gzipReader, err := gzip.NewReader(file)
+		// Create a Zstandard reader
+		zstdReader, err := zstd.NewReader(file)
 		if err != nil {
 			return fmt.Errorf("failed to create gzip reader: %v", err)
 		}
-		defer gzipReader.Close()
+		defer zstdReader.Close()
 
-		// Create a tar reader
-		tarReader := tar.NewReader(gzipReader)
+		// Create a new tar reader
+		tarReader := tar.NewReader(zstdReader)
 
 		for {
 			// Read the next header from the tar archive
