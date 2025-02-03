@@ -31,6 +31,7 @@ helm-datarobot save [flags]
   -a, --annotation string   annotation to lookup (default "datarobot.com/images")
       --dry-run             Perform a dry run without making changes
   -h, --help                help for save
+  -l, --level string        zstd compression level (Available options: fastest, default, better, best) (default "best")
   -o, --output string       file to save (default "images.tar.zst")
 ```
 

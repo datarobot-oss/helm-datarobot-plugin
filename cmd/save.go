@@ -140,7 +140,7 @@ func init() {
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
 	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tar.zst", "file to save")
-	saveCmd.Flags().StringVarP(&saveCompressionLevel, "level", "l", "best", "zstd compression level")
+	saveCmd.Flags().StringVarP(&saveCompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
 	saveCmd.Flags().BoolVarP(&saveDryRun, "dry-run", "", false, "Perform a dry run without making changes")
 }
 
