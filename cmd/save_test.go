@@ -50,7 +50,6 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 --dry-run=false -a datarobot.com/images --output "+SAVE_TEST_ARCHIVE)
 		assert.NoError(t, err)
 
-		// Expected output to compare
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
 ReTagging image: docker.io/alpine/curl:8.9.1 > docker.io/alpine/curl:stable
 Pulling image: docker.io/busybox:1.36.1
@@ -70,6 +69,12 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 		if err != nil {
 			t.Fatalf("Failed to remove file: %v", err)
 		}
+	})
+	t.Run("wrong-level", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 --level=wrong")
+		assert.Error(t, err)
+		expectedOutput := `Error: Invalid compression level. Available options: fastest, default, better, best`
+		assert.Equal(t, expectedOutput, output)
 	})
 
 }
