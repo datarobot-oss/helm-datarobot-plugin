@@ -39,6 +39,19 @@ $ du -h images.tar.zst
 '''`, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		levelMap := map[string]zstd.EncoderLevel{
+			"fastest": zstd.SpeedFastest,
+			"default": zstd.SpeedDefault,
+			"better":  zstd.SpeedBetterCompression,
+			"best":    zstd.SpeedBestCompression,
+		}
+
+		level, ok := levelMap[saveCompressionLevel]
+		if !ok {
+			return fmt.Errorf("Invalid compression level. Available options: fastest, default, better, best")
+		}
+
 		images, err := ExtractImagesFromCharts(args)
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
@@ -102,7 +115,7 @@ $ du -h images.tar.zst
 
 		}
 		if !saveDryRun {
-			err = createTarball(saveOutput, tgzFiles)
+			err = createTarball(saveOutput, tgzFiles, level)
 			if err != nil {
 				return fmt.Errorf("Error createTarball: %v\n", err)
 			}
@@ -120,25 +133,26 @@ $ du -h images.tar.zst
 	},
 }
 
-var saveOutput string
+var saveOutput, saveCompressionLevel string
 var saveDryRun bool
 
 func init() {
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
 	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tar.zst", "file to save")
+	saveCmd.Flags().StringVarP(&saveCompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
 	saveCmd.Flags().BoolVarP(&saveDryRun, "dry-run", "", false, "Perform a dry run without making changes")
 }
 
 // CreateZST creates a .zst archive from the specified input TGZ files
-func createTarball(outputPath string, inputTGZPaths []string) error {
+func createTarball(outputPath string, inputTGZPaths []string, level zstd.EncoderLevel) error {
 	outFile, err := os.Create(outputPath)
 	if err != nil {
 		return err
 	}
 	defer outFile.Close()
 
-	encoder, err := zstd.NewWriter(outFile)
+	encoder, err := zstd.NewWriter(outFile, zstd.WithEncoderLevel(level))
 	if err != nil {
 		return err
 	}
