@@ -16,7 +16,10 @@ func executeCommand(root *cobra.Command, cmd string) (output string, err error) 
 	if err != nil {
 		return "", err
 	}
-	root.ResetFlags()
+	root.Flags().VisitAll(func(flag *pflag.Flag) {
+		flag.Value.Set(flag.DefValue)
+		flag.Changed = false // Mark the flag as not changed
+	})
 	resetSubCommandFlagValues(rootCmd) // See: https://github.com/spf13/cobra/issues/1488
 	root.SetOut(buf)
 	root.SetErr(buf)
@@ -29,11 +32,9 @@ func executeCommand(root *cobra.Command, cmd string) (output string, err error) 
 // From: https://github.com/golang/debug/pull/8/files
 func resetSubCommandFlagValues(root *cobra.Command) {
 	for _, c := range root.Commands() {
-		c.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Changed {
-				f.Value.Set(f.DefValue)
-				f.Changed = false
-			}
+		c.Flags().VisitAll(func(flag *pflag.Flag) {
+			flag.Value.Set(flag.DefValue)
+			flag.Changed = false // Mark the flag as not changed
 		})
 		resetSubCommandFlagValues(c)
 	}
