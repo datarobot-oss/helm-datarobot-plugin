@@ -69,14 +69,6 @@ func TestCommandSync(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 
-	t.Run("test-chart4/prefix-suffix", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -r registry.example.com --dry-run -a custom/images --prefix prefix --suffix suffix ")
-		assert.NoError(t, err)
-		expectedOutput := `[Dry-Run] Pulling image: docker.io/datarobotdev/test-image4:4.0.0
-[Dry-Run] Pushing image: registry.example.com/prefix/datarobotdev/suffix/test-image4:4.0.0`
-
-		assert.Equal(t, expectedOutput, output)
-	})
 	t.Run("skip-image-group", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -r registry.example.com --dry-run -a image/groups --skip-group test1")
 		assert.NoError(t, err)
@@ -106,7 +98,16 @@ Skipping image: docker.io/alpine/curl:8.9.2
 
 		assert.Equal(t, expectedOutput, output)
 	})
-	t.Run("test-chart4/repo", func(t *testing.T) {
+
+	t.Run("prefix-suffix", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -r registry.example.com --dry-run -a custom/images --prefix prefix --suffix suffix ")
+		assert.NoError(t, err)
+		expectedOutput := `[Dry-Run] Pulling image: docker.io/datarobotdev/test-image4:4.0.0
+[Dry-Run] Pushing image: registry.example.com/prefix/datarobotdev/suffix/test-image4:4.0.0`
+
+		assert.Equal(t, expectedOutput, output)
+	})
+	t.Run("set-repo", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -r ocp.example.com --dry-run -a custom/images --repo openshift-image-registry/test ")
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/datarobotdev/test-image4:4.0.0
