@@ -16,6 +16,7 @@ func executeCommand(root *cobra.Command, cmd string) (output string, err error) 
 	if err != nil {
 		return "", err
 	}
+	root.ResetFlags()
 	resetSubCommandFlagValues(rootCmd) // See: https://github.com/spf13/cobra/issues/1488
 	root.SetOut(buf)
 	root.SetErr(buf)
