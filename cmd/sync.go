@@ -64,6 +64,20 @@ $ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registr
 				iUri.Project = ""
 			}
 
+			if len(syncSkipImageGroup) > 0 {
+				_skipImage := false
+				for _, group := range syncSkipImageGroup {
+					if image.Group == group {
+						cmd.Printf("Skipping image: %s\n\n", srcImage)
+						_skipImage = true
+						continue
+					}
+				}
+				if _skipImage {
+					continue
+				}
+			}
+
 			dstImage := iUri.String()
 			if syncDryRun {
 				cmd.Printf("[Dry-Run] Pulling image: %s\n", srcImage)
@@ -111,6 +125,7 @@ $ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registr
 
 var syncReg, syncUsername, syncPassword, syncToken, syncImagePrefix, syncImageSuffix, syncImageRepo, syncTransform, caCertPath, certPath, keyPath string
 var syncDryRun, skipTlsVerify, syncPasswordStdin bool
+var syncSkipImageGroup []string
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
@@ -128,5 +143,6 @@ func init() {
 	syncCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
 	syncCmd.Flags().StringVarP(&keyPath, "key", "K", "", "Path to the client key")
 	syncCmd.Flags().BoolVarP(&skipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
+	syncCmd.Flags().StringArrayVarP(&syncSkipImageGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 	syncCmd.MarkFlagRequired("registry")
 }
