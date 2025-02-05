@@ -66,6 +66,20 @@ $ du -h images.tar.zst
 				return err
 			}
 
+			if len(saveSkipImageGroup) > 0 {
+				_skipImage := false
+				for _, group := range saveSkipImageGroup {
+					if image.Group == group {
+						cmd.Printf("Skipping image: %s\n\n", iUri.String())
+						_skipImage = true
+						continue
+					}
+				}
+				if _skipImage {
+					continue
+				}
+			}
+
 			if saveDryRun {
 				cmd.Printf("[Dry-Run] Pulling image: %s\n", iUri.String())
 			} else {
@@ -135,12 +149,14 @@ $ du -h images.tar.zst
 
 var saveOutput, saveCompressionLevel string
 var saveDryRun bool
+var saveSkipImageGroup []string
 
 func init() {
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
 	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tar.zst", "file to save")
 	saveCmd.Flags().StringVarP(&saveCompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
+	saveCmd.Flags().StringArrayVarP(&saveSkipImageGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 	saveCmd.Flags().BoolVarP(&saveDryRun, "dry-run", "", false, "Perform a dry run without making changes")
 }
 

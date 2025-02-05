@@ -77,4 +77,35 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 		assert.Equal(t, expectedOutput, output)
 	})
 
+	t.Run("skip-image-group", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart6 --dry-run -a image/groups --skip-group test1")
+		assert.NoError(t, err)
+		expectedOutput := `Skipping image: docker.io/alpine/curl:8.9.10
+
+Skipping image: docker.io/alpine/curl:8.9.11
+
+[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.2
+[Dry-Run] adding image to tgz: alpine/curl:8.9.2.tgz
+[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.3
+[Dry-Run] adding image to tgz: alpine/curl:8.9.3.tgz
+[Dry-Run] Tarball created successfully: images.tar.zst`
+
+		assert.Equal(t, expectedOutput, output)
+	})
+
+	t.Run("skip-image-group2", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart6 --dry-run -a image/groups --skip-group test1 --skip-group test2")
+		assert.NoError(t, err)
+		expectedOutput := `Skipping image: docker.io/alpine/curl:8.9.10
+
+Skipping image: docker.io/alpine/curl:8.9.11
+
+Skipping image: docker.io/alpine/curl:8.9.2
+
+[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.3
+[Dry-Run] adding image to tgz: alpine/curl:8.9.3.tgz
+[Dry-Run] Tarball created successfully: images.tar.zst`
+
+		assert.Equal(t, expectedOutput, output)
+	})
 }
