@@ -7,7 +7,7 @@ import (
 )
 
 func TestCommandReleaseManifest(t *testing.T) {
-	t.Run("Test test-chart1", func(t *testing.T) {
+	t.Run("test-chart1", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart1 -a \"datarobot.com/images\"")
 		assert.NoError(t, err)
 		// Expected output to compare

@@ -28,11 +28,12 @@ helm-datarobot save [flags]
 ### Options
 
 ```
-  -a, --annotation string   annotation to lookup (default "datarobot.com/images")
-      --dry-run             Perform a dry run without making changes
-  -h, --help                help for save
-  -l, --level string        zstd compression level (Available options: fastest, default, better, best) (default "best")
-  -o, --output string       file to save (default "images.tar.zst")
+  -a, --annotation string        annotation to lookup (default "datarobot.com/images")
+      --dry-run                  Perform a dry run without making changes
+  -h, --help                     help for save
+  -l, --level string             zstd compression level (Available options: fastest, default, better, best) (default "best")
+  -o, --output string            file to save (default "images.tar.zst")
+      --skip-group stringArray   Specify which image group should be skipped (can be used multiple times)
 ```
 
 ### SEE ALSO

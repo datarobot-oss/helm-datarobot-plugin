@@ -12,6 +12,7 @@ type DatarobotImageDeclaration struct {
 	Name  string `yaml:"name"`
 	Image string `yaml:"image"`
 	Tag   string `yaml:"tag,omitempty"`
+	Group string `yaml:"group,omitempty"`
 }
 
 type ChartImages struct {

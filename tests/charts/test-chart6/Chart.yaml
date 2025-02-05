@@ -12,3 +12,16 @@ annotations:
   bitnami: |
     - name: redis
       image: docker.io/bitnami/redis:7.4.2-debian-12-r0
+  image/groups: |
+    - name: curl10
+      image: docker.io/alpine/curl:8.9.10
+      group: test1
+    - name: curl11
+      image: docker.io/alpine/curl:8.9.11
+      group: test1
+    - name: curl2
+      image: docker.io/alpine/curl:8.9.2
+      group: test2
+    - name: curl3
+      image: docker.io/alpine/curl:8.9.3
+      group: test3
