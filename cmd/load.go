@@ -96,6 +96,7 @@ $ helm datarobot load images.tgz
 			}
 
 			imageName := loadCfg.RegistryHost + "/" + strings.TrimSuffix(header.Name, ".tgz")
+			cmd.Println("Pushing image1: ", imageName)
 			iUri, err := image_uri.NewDockerUri(imageName)
 			if err != nil {
 				return err
@@ -135,7 +136,7 @@ $ helm datarobot load images.tgz
 					Password: loadCfg.Password,
 				}
 			}
-
+			cmd.Println("Pushing image2: ", ref.Name())
 			err = remote.Write(ref, image, remote.WithTransport(transport), remote.WithAuth(auth))
 			if err != nil {
 				return fmt.Errorf("failed to push Docker image to registry: %v", err)
