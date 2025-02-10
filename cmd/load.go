@@ -45,7 +45,6 @@ $ helm datarobot load images.tgz
 `, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		zstFile := args[0]
 		// Open the tgz file
 		file, err := os.Open(zstFile)
