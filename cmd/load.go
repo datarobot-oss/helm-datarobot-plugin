@@ -139,8 +139,9 @@ $ helm datarobot load images.tgz
 			err = remote.Write(ref, image, remote.WithTransport(transport), remote.WithAuth(auth))
 			if err != nil {
 				return fmt.Errorf("failed to push Docker image to registry: %v", err)
+			} else {
+				cmd.Printf("Successfully pushed image %s\n", ref.Name())
 			}
-			cmd.Printf("Successfully pushed image %s\n", ref.Name())
 		}
 
 		return nil
