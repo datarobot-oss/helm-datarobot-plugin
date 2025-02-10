@@ -46,7 +46,7 @@ Successfully pushed image localhost:5000/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
 
-	t.Run("local-registry-insecure", func(t *testing.T) {
+	t.Run("local-registry-ca", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
