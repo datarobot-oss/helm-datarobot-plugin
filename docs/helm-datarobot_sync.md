@@ -21,13 +21,9 @@ Authentication can be provided in various ways, including:
 ```sh
 export REGISTRY_USERNAME=reg_username
 export REGISTRY_PASSWORD=reg_password
-$ helm datarobot sync tests/charts/test-chart1/ -r registry.example.com
+export REGISTRY_HOST=registry.example.com
+$ helm datarobot sync tests/charts/test-chart1/
 ```
-
-```sh
-$ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registry.example.com -u reg_username --password-stdin
-```
-
 
 
 ```
@@ -45,7 +41,6 @@ helm-datarobot sync [flags]
   -i, --insecure                 Skip server certificate verification
   -K, --key string               Path to the client key
   -p, --password string          pass to auth
-      --password-stdin           Read password from stdin
       --prefix string            append prefix on repo name
   -r, --registry string          registry to auth
       --repo string              rewrite the target repository name

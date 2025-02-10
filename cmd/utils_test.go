@@ -4,8 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetTransport(t *testing.T) {
@@ -95,45 +93,4 @@ E4bmYvhnmO/hlPwDN02OSWHYm6m0yIzWXw==
 	if !transport.TLSClientConfig.InsecureSkipVerify {
 		t.Fatal("Expected InsecureSkipVerify to be true")
 	}
-}
-
-func TestGetSecret(t *testing.T) {
-	t.Run("direct", func(t *testing.T) {
-		output := GetSecret(false, "TEST_SEC", "test")
-		expectedOutput := `test`
-		assert.Equal(t, expectedOutput, output)
-	})
-	t.Run("env", func(t *testing.T) {
-		os.Setenv("TEST_SEC", "test")
-		output := GetSecret(false, "TEST_SEC", "")
-		expectedOutput := `test`
-		assert.Equal(t, expectedOutput, output)
-	})
-	t.Run("sdtin", func(t *testing.T) {
-		input := "test\n"
-		// Save the original os.Stdin
-		originalStdin := os.Stdin
-		defer func() { os.Stdin = originalStdin }()
-
-		// Create a temporary os.Stdin
-		r, w, err := os.Pipe()
-		if err != nil {
-			t.Fatalf("Failed to create pipe: %v", err)
-		}
-
-		// Write the mock input to the pipe
-		_, err = w.Write([]byte(input))
-		if err != nil {
-			t.Fatalf("Failed to write to pipe: %v", err)
-		}
-		// Close the pipe write to simulate end of input
-		w.Close()
-
-		// Redirect os.Stdin to read from the pipe
-		os.Stdin = r
-		output := GetSecret(true, "", "")
-		expectedOutput := `test`
-		assert.Equal(t, expectedOutput, output)
-	})
-
 }
