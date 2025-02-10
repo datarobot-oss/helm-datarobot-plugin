@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -45,6 +44,11 @@ $ helm datarobot load images.tgz
 `, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+		if err := envconfig.Process(ctx, &loadCfg); err != nil {
+			return fmt.Errorf(err)
+		}
+
 		zstFile := args[0]
 		// Open the tgz file
 		file, err := os.Open(zstFile)
@@ -177,8 +181,4 @@ func init() {
 	loadCmd.Flags().StringVarP(&loadCfg.KeyPath, "key", "K", "", "Path to the client key")
 	loadCmd.Flags().BoolVarP(&loadCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
 	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
-	ctx := context.Background()
-	if err := envconfig.Process(ctx, &loadCfg); err != nil {
-		log.Fatal(err)
-	}
 }
