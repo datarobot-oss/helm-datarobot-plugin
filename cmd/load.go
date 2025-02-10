@@ -46,7 +46,7 @@ $ helm datarobot load images.tgz
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		if err := envconfig.Process(ctx, &loadCfg); err != nil {
-			return fmt.Errorf(err)
+			return fmt.Errorf("%v", err)
 		}
 
 		zstFile := args[0]
