@@ -46,6 +46,7 @@ Tarball created successfully: image-load.tar.zst`
 	t.Run("local-registry-insecure", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
+		os.Setenv("DRY_RUN", "false")
 		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --insecure")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
