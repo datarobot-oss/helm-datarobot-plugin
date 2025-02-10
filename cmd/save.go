@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +16,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/klauspost/compress/zstd"
+	"github.com/sethvargo/go-envconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +50,7 @@ $ du -h images.tar.zst
 			"best":    zstd.SpeedBestCompression,
 		}
 
-		level, ok := levelMap[saveCompressionLevel]
+		level, ok := levelMap[saveCfg.CompressionLevel]
 		if !ok {
 			return fmt.Errorf("Invalid compression level. Available options: fastest, default, better, best")
 		}
@@ -66,9 +69,9 @@ $ du -h images.tar.zst
 				return err
 			}
 
-			if len(saveSkipImageGroup) > 0 {
+			if len(saveCfg.ImageSkipGroup) > 0 {
 				_skipImage := false
-				for _, group := range saveSkipImageGroup {
+				for _, group := range saveCfg.ImageSkipGroup {
 					if image.Group == group {
 						cmd.Printf("Skipping image: %s\n\n", iUri.String())
 						_skipImage = true
@@ -80,7 +83,7 @@ $ du -h images.tar.zst
 				}
 			}
 
-			if saveDryRun {
+			if saveCfg.DryRun {
 				cmd.Printf("[Dry-Run] Pulling image: %s\n", iUri.String())
 			} else {
 				cmd.Printf("Pulling image: %s\n", iUri.String())
@@ -93,7 +96,7 @@ $ du -h images.tar.zst
 			oldName := iUri.String()
 			if image.Tag != "" {
 				iUri.Tag = image.Tag
-				if saveDryRun {
+				if saveCfg.DryRun {
 					cmd.Printf("[Dry-Run] ReTagging image: %s > %s\n", oldName, iUri.String())
 				} else {
 					cmd.Printf("ReTagging image: %s > %s\n", oldName, iUri.String())
@@ -115,7 +118,7 @@ $ du -h images.tar.zst
 				continue
 			}
 
-			if saveDryRun {
+			if saveCfg.DryRun {
 				cmd.Printf("[Dry-Run] adding image to tgz: %s\n", tgzFileName)
 			} else {
 				ref, err := name.ParseReference(iUri.String())
@@ -128,8 +131,8 @@ $ du -h images.tar.zst
 			}
 
 		}
-		if !saveDryRun {
-			err = createTarball(saveOutput, tgzFiles, level)
+		if !saveCfg.DryRun {
+			err = createTarball(saveCfg.Output, tgzFiles, level)
 			if err != nil {
 				return fmt.Errorf("Error createTarball: %v\n", err)
 			}
@@ -138,26 +141,35 @@ $ du -h images.tar.zst
 				return fmt.Errorf("Error deleteTmpFiles: %v\n", err)
 			}
 		}
-		if saveDryRun {
-			cmd.Printf("[Dry-Run] Tarball created successfully: %s\n", saveOutput)
+		if saveCfg.DryRun {
+			cmd.Printf("[Dry-Run] Tarball created successfully: %s\n", saveCfg.Output)
 		} else {
-			cmd.Printf("Tarball created successfully: %s\n", saveOutput)
+			cmd.Printf("Tarball created successfully: %s\n", saveCfg.Output)
 		}
 		return nil
 	},
 }
 
-var saveOutput, saveCompressionLevel string
-var saveDryRun bool
-var saveSkipImageGroup []string
+type saveConfig struct {
+	Output           string   `env:"OUTPUT"`
+	CompressionLevel string   `env:"LEVEL"`
+	ImageSkipGroup   []string `env:"IMAGE_SKIP_GROUP"`
+	DryRun           bool     `env:"DRY_RUN"`
+}
+
+var saveCfg saveConfig
 
 func init() {
 	rootCmd.AddCommand(saveCmd)
 	saveCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	saveCmd.Flags().StringVarP(&saveOutput, "output", "o", "images.tar.zst", "file to save")
-	saveCmd.Flags().StringVarP(&saveCompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
-	saveCmd.Flags().StringArrayVarP(&saveSkipImageGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
-	saveCmd.Flags().BoolVarP(&saveDryRun, "dry-run", "", false, "Perform a dry run without making changes")
+	saveCmd.Flags().StringVarP(&saveCfg.Output, "output", "o", "images.tar.zst", "file to save")
+	saveCmd.Flags().StringVarP(&saveCfg.CompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
+	saveCmd.Flags().StringArrayVarP(&saveCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
+	saveCmd.Flags().BoolVarP(&saveCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
+	ctx := context.Background()
+	if err := envconfig.Process(ctx, &saveCfg); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // CreateZST creates a .zst archive from the specified input TGZ files

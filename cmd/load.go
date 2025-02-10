@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/klauspost/compress/zstd"
+	"github.com/sethvargo/go-envconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -36,13 +39,9 @@ Authentication can be provided in various ways, including:
 '''sh
 export REGISTRY_USERNAME=reg_username
 export REGISTRY_PASSWORD=reg_password
-$ helm datarobot load images.tgz -r registry.example.com
+export REGISTRY_HOST=registry.example.com
+$ helm datarobot load images.tgz
 '''
-
-'''sh
-$ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -u reg_username --password-stdin
-'''
-
 `, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -96,20 +95,20 @@ $ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -
 				return fmt.Errorf("failed to load Docker image from tarball: %v", err)
 			}
 
-			imageName := loadReg + "/" + strings.TrimSuffix(header.Name, ".tgz")
+			imageName := loadCfg.RegistryHost + "/" + strings.TrimSuffix(header.Name, ".tgz")
 			iUri, err := image_uri.NewDockerUri(imageName)
 			if err != nil {
 				return err
 			}
 
-			iUri.Organization = iUri.Join([]string{loadImagePrefix, iUri.Organization}, "/")
-			iUri.Project = iUri.Join([]string{iUri.Project, loadImageSuffix}, "/")
-			if loadImageRepo != "" {
-				iUri.Organization = loadImageRepo
+			iUri.Organization = iUri.Join([]string{loadCfg.ImagePrefix, iUri.Organization}, "/")
+			iUri.Project = iUri.Join([]string{iUri.Project, loadCfg.ImageSuffix}, "/")
+			if loadCfg.ImageRepo != "" {
+				iUri.Organization = loadCfg.ImageRepo
 				iUri.Project = ""
 			}
 
-			if loadDryRun {
+			if loadCfg.DryRun {
 				cmd.Printf("[Dry-Run] Pushing image: %s\n", iUri.String())
 				continue
 			}
@@ -119,24 +118,21 @@ $ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -
 				return fmt.Errorf("failed to create image reference: %v", err)
 			}
 
-			transport, err := GetTransport(caCertPath, certPath, keyPath, skipTlsVerify)
+			transport, err := GetTransport(loadCfg.CaCertPath, loadCfg.CertPath, loadCfg.KeyPath, loadCfg.SkipTlsVerify)
 			if err != nil {
 				return fmt.Errorf("failed to GetTransport: %w", err)
 			}
 
 			auth := authn.Anonymous
-			secretLoadToken := GetSecret(loadPasswordStdin, "REGISTRY_TOKEN", loadToken)
-			if secretLoadToken != "" {
+			if loadCfg.Token != "" {
 				auth = &authn.Bearer{
-					Token: secretLoadToken,
+					Token: loadCfg.Token,
 				}
 			}
-			secretLoadUsername := GetSecret(false, "REGISTRY_USERNAME", loadUsername)
-			secretLoadPassword := GetSecret(loadPasswordStdin, "REGISTRY_PASSWORD", loadPassword)
-			if secretLoadUsername != "" && secretLoadPassword != "" {
+			if loadCfg.Username != "" && loadCfg.Password != "" {
 				auth = &authn.Basic{
-					Username: secretLoadUsername,
-					Password: secretLoadPassword,
+					Username: loadCfg.Username,
+					Password: loadCfg.Password,
 				}
 			}
 
@@ -151,23 +147,39 @@ $ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -
 	},
 }
 
-var loadReg, loadUsername, loadPassword, loadToken, loadImagePrefix, loadImageSuffix, loadImageRepo string
-var loadDryRun, loadPasswordStdin bool
+type loadConfig struct {
+	Username      string `env:"REGISTRY_USERNAME"`
+	Password      string `env:"REGISTRY_PASSWORD"`
+	Token         string `env:"REGISTRY_TOKEN"`
+	RegistryHost  string `env:"REGISTRY_HOST"`
+	ImagePrefix   string `env:"IMAGE_PREFIX"`
+	ImageSuffix   string `env:"IMAGE_SUFFIX"`
+	ImageRepo     string `env:"IMAGE_REPO"`
+	CaCertPath    string `env:"CA_CERT_PATH"`
+	CertPath      string `env:"CERT_PATH"`
+	KeyPath       string `env:"KEY_PATH"`
+	SkipTlsVerify bool   `env:"SKIP_TLS_VERIFY"`
+	DryRun        bool   `env:"DRY_RUN"`
+}
+
+var loadCfg loadConfig
 
 func init() {
 	rootCmd.AddCommand(loadCmd)
-	loadCmd.Flags().StringVarP(&loadUsername, "username", "u", "", "username to auth")
-	loadCmd.Flags().StringVarP(&loadPassword, "password", "p", "", "pass to auth")
-	loadCmd.Flags().BoolVar(&loadPasswordStdin, "password-stdin", false, "Read password from stdin")
-	loadCmd.Flags().StringVarP(&loadToken, "token", "t", "", "pass to auth")
-	loadCmd.Flags().StringVarP(&loadReg, "registry", "r", "", "registry to auth")
-	loadCmd.Flags().StringVarP(&loadImagePrefix, "prefix", "", "", "append prefix on repo name")
-	loadCmd.Flags().StringVarP(&loadImageRepo, "repo", "", "", "rewrite the target repository name")
-	loadCmd.Flags().StringVarP(&loadImageSuffix, "suffix", "", "", "append suffix on repo name")
-	loadCmd.Flags().StringVarP(&caCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
-	loadCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
-	loadCmd.Flags().StringVarP(&keyPath, "key", "K", "", "Path to the client key")
-	loadCmd.Flags().BoolVarP(&skipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
-	loadCmd.Flags().BoolVarP(&loadDryRun, "dry-run", "", false, "Perform a dry run without making changes")
-	loadCmd.MarkFlagRequired("registry")
+	loadCmd.Flags().StringVarP(&loadCfg.Username, "username", "u", "", "username to auth")
+	loadCmd.Flags().StringVarP(&loadCfg.Password, "password", "p", "", "pass to auth")
+	loadCmd.Flags().StringVarP(&loadCfg.Token, "token", "t", "", "pass to auth")
+	loadCmd.Flags().StringVarP(&loadCfg.RegistryHost, "registry", "r", "", "registry to auth")
+	loadCmd.Flags().StringVarP(&loadCfg.ImagePrefix, "prefix", "", "", "append prefix on repo name")
+	loadCmd.Flags().StringVarP(&loadCfg.ImageRepo, "repo", "", "", "rewrite the target repository name")
+	loadCmd.Flags().StringVarP(&loadCfg.ImageSuffix, "suffix", "", "", "append suffix on repo name")
+	loadCmd.Flags().StringVarP(&loadCfg.CaCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
+	loadCmd.Flags().StringVarP(&loadCfg.CertPath, "cert", "C", "", "Path to the client certificate")
+	loadCmd.Flags().StringVarP(&loadCfg.KeyPath, "key", "K", "", "Path to the client key")
+	loadCmd.Flags().BoolVarP(&loadCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
+	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
+	ctx := context.Background()
+	if err := envconfig.Process(ctx, &loadCfg); err != nil {
+		log.Fatal(err)
+	}
 }

@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/sethvargo/go-envconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -32,15 +35,16 @@ Authentication can be provided in various ways, including:
 '''sh
 export REGISTRY_USERNAME=reg_username
 export REGISTRY_PASSWORD=reg_password
-$ helm datarobot sync tests/charts/test-chart1/ -r registry.example.com
+export REGISTRY_HOST=registry.example.com
+$ helm datarobot sync tests/charts/test-chart1/
 '''
-
-'''sh
-$ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registry.example.com -u reg_username --password-stdin
-'''
-
 `, "'", "`", -1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		if syncCfg.RegistryHost == "" {
+			return fmt.Errorf("Registry Host not set")
+		}
+
 		images, err := ExtractImagesFromCharts(args)
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
@@ -56,17 +60,17 @@ $ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registr
 				iUri.Tag = image.Tag
 			}
 
-			iUri.RegistryHost = syncReg
-			iUri.Organization = iUri.Join([]string{syncImagePrefix, iUri.Organization}, "/")
-			iUri.Project = iUri.Join([]string{iUri.Project, syncImageSuffix}, "/")
-			if syncImageRepo != "" {
-				iUri.Organization = syncImageRepo
+			iUri.RegistryHost = syncCfg.RegistryHost
+			iUri.Organization = iUri.Join([]string{syncCfg.ImagePrefix, iUri.Organization}, "/")
+			iUri.Project = iUri.Join([]string{iUri.Project, syncCfg.ImageSuffix}, "/")
+			if syncCfg.ImageRepo != "" {
+				iUri.Organization = syncCfg.ImageRepo
 				iUri.Project = ""
 			}
 
-			if len(syncSkipImageGroup) > 0 {
+			if len(syncCfg.ImageSkipGroup) > 0 {
 				_skipImage := false
-				for _, group := range syncSkipImageGroup {
+				for _, group := range syncCfg.ImageSkipGroup {
 					if image.Group == group {
 						cmd.Printf("Skipping image: %s\n\n", srcImage)
 						_skipImage = true
@@ -79,7 +83,7 @@ $ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registr
 			}
 
 			dstImage := iUri.String()
-			if syncDryRun {
+			if syncCfg.DryRun {
 				cmd.Printf("[Dry-Run] Pulling image: %s\n", srcImage)
 				cmd.Printf("[Dry-Run] Pushing image: %s\n\n", dstImage)
 				continue
@@ -91,7 +95,7 @@ $ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registr
 				return fmt.Errorf("failed to pull image: %w", err)
 			}
 
-			transport, err := GetTransport(caCertPath, certPath, keyPath, skipTlsVerify)
+			transport, err := GetTransport(syncCfg.CaCertPath, syncCfg.CertPath, syncCfg.KeyPath, syncCfg.SkipTlsVerify)
 			if err != nil {
 				return fmt.Errorf("failed to GetTransport: %w", err)
 			}
@@ -99,18 +103,15 @@ $ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registr
 			cmd.Printf("Pushing image: %s\n\n", dstImage)
 
 			auth := authn.Anonymous
-			secretSyncToken := GetSecret(syncPasswordStdin, "REGISTRY_TOKEN", syncToken)
-			if secretSyncToken != "" {
+			if syncCfg.Token != "" {
 				auth = &authn.Bearer{
-					Token: secretSyncToken,
+					Token: syncCfg.Token,
 				}
 			}
-			secretSyncUsername := GetSecret(false, "REGISTRY_USERNAME", syncUsername)
-			secretSyncPassword := GetSecret(syncPasswordStdin, "REGISTRY_PASSWORD", syncPassword)
-			if secretSyncUsername != "" && secretSyncPassword != "" {
+			if syncCfg.Username != "" && syncCfg.Username != "" {
 				auth = &authn.Basic{
-					Username: secretSyncUsername,
-					Password: secretSyncPassword,
+					Username: syncCfg.Username,
+					Password: syncCfg.Password,
 				}
 			}
 
@@ -123,26 +124,43 @@ $ echo "reg_password" | helm datarobot sync tests/charts/test-chart1/ -r registr
 	},
 }
 
-var syncReg, syncUsername, syncPassword, syncToken, syncImagePrefix, syncImageSuffix, syncImageRepo, syncTransform, caCertPath, certPath, keyPath string
-var syncDryRun, skipTlsVerify, syncPasswordStdin bool
-var syncSkipImageGroup []string
+type syncConfig struct {
+	Username       string   `env:"REGISTRY_USERNAME"`
+	Password       string   `env:"REGISTRY_PASSWORD"`
+	Token          string   `env:"REGISTRY_TOKEN"`
+	RegistryHost   string   `env:"REGISTRY_HOST"`
+	ImagePrefix    string   `env:"IMAGE_PREFIX"`
+	ImageSuffix    string   `env:"IMAGE_SUFFIX"`
+	ImageRepo      string   `env:"IMAGE_REPO"`
+	Transform      string   `env:"TRANSFORM"`
+	CaCertPath     string   `env:"CA_CERT_PATH"`
+	CertPath       string   `env:"CERT_PATH"`
+	KeyPath        string   `env:"KEY_PATH"`
+	SkipTlsVerify  bool     `env:"SKIP_TLS_VERIFY"`
+	ImageSkipGroup []string `env:"IMAGE_SKIP_GROUP"`
+	DryRun         bool     `env:"DRY_RUN"`
+}
+
+var syncCfg syncConfig
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	syncCmd.Flags().StringVarP(&syncUsername, "username", "u", "", "username to auth")
-	syncCmd.Flags().StringVarP(&syncPassword, "password", "p", "", "pass to auth")
-	syncCmd.Flags().BoolVar(&syncPasswordStdin, "password-stdin", false, "Read password from stdin")
-	syncCmd.Flags().StringVarP(&syncToken, "token", "t", "", "pass to auth")
-	syncCmd.Flags().StringVarP(&syncReg, "registry", "r", "", "registry to auth")
-	syncCmd.Flags().StringVarP(&syncImagePrefix, "prefix", "", "", "append prefix on repo name")
-	syncCmd.Flags().StringVarP(&syncImageRepo, "repo", "", "", "rewrite the target repository name")
-	syncCmd.Flags().StringVarP(&syncImageSuffix, "suffix", "", "", "append suffix on repo name")
-	syncCmd.Flags().BoolVarP(&syncDryRun, "dry-run", "", false, "Perform a dry run without making changes")
-	syncCmd.Flags().StringVarP(&caCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
-	syncCmd.Flags().StringVarP(&certPath, "cert", "C", "", "Path to the client certificate")
-	syncCmd.Flags().StringVarP(&keyPath, "key", "K", "", "Path to the client key")
-	syncCmd.Flags().BoolVarP(&skipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
-	syncCmd.Flags().StringArrayVarP(&syncSkipImageGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
-	syncCmd.MarkFlagRequired("registry")
+	syncCmd.Flags().StringVarP(&syncCfg.Username, "username", "u", "", "username to auth")
+	syncCmd.Flags().StringVarP(&syncCfg.Password, "password", "p", "", "pass to auth")
+	syncCmd.Flags().StringVarP(&syncCfg.Token, "token", "t", "", "pass to auth")
+	syncCmd.Flags().StringVarP(&syncCfg.RegistryHost, "registry", "r", "", "registry to auth")
+	syncCmd.Flags().StringVarP(&syncCfg.ImagePrefix, "prefix", "", "", "append prefix on repo name")
+	syncCmd.Flags().StringVarP(&syncCfg.ImageRepo, "repo", "", "", "rewrite the target repository name")
+	syncCmd.Flags().StringVarP(&syncCfg.ImageSuffix, "suffix", "", "", "append suffix on repo name")
+	syncCmd.Flags().BoolVarP(&syncCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
+	syncCmd.Flags().StringVarP(&syncCfg.CaCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
+	syncCmd.Flags().StringVarP(&syncCfg.CertPath, "cert", "C", "", "Path to the client certificate")
+	syncCmd.Flags().StringVarP(&syncCfg.KeyPath, "key", "K", "", "Path to the client key")
+	syncCmd.Flags().BoolVarP(&syncCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
+	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
+	ctx := context.Background()
+	if err := envconfig.Process(ctx, &syncCfg); err != nil {
+		log.Fatal(err)
+	}
 }
