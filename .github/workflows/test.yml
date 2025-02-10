@@ -37,6 +37,7 @@ jobs:
 
       - name: Docs
         run: |
+          go version
           make docs
           if [[ $(git status --porcelain) ]]; then
             echo "Documentation is out of date, please update it"
