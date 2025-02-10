@@ -108,7 +108,7 @@ $ helm datarobot sync tests/charts/test-chart1/
 					Token: syncCfg.Token,
 				}
 			}
-			if syncCfg.Username != "" && syncCfg.Username != "" {
+			if syncCfg.Username != "" && syncCfg.Password != "" {
 				auth = &authn.Basic{
 					Username: syncCfg.Username,
 					Password: syncCfg.Password,
