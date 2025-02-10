@@ -37,9 +37,7 @@ Tarball created successfully: image-load.tar.zst`
 	t.Run("local-registry-insecure", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
-		os.Setenv("REGISTRY_HOST", "localhost:5000")
-		os.Setenv("SKIP_TLS_VERIFY", "true")
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE)
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --insecure")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
@@ -49,9 +47,7 @@ Successfully pushed image localhost:5000/busybox:1.36.1`
 	t.Run("local-registry-ca", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
-		os.Setenv("REGISTRY_HOST", "localhost:5000")
-		os.Setenv("CA_CERT_PATH", "../tests/registry/certs/ca.crt")
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE)
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --ca-cert ../tests/registry/certs/ca.crt")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
