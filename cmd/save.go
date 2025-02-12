@@ -43,7 +43,7 @@ $ du -h images.tar.zst
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		ctx := context.Background()
-		if err := envconfig.Process(ctx, &loadCfg); err != nil {
+		if err := envconfig.Process(ctx, &saveCfg); err != nil {
 			return fmt.Errorf("%v", err)
 		}
 

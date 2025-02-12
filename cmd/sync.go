@@ -40,7 +40,7 @@ $ helm datarobot sync tests/charts/test-chart1/
 `, "'", "`", -1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
-		if err := envconfig.Process(ctx, &loadCfg); err != nil {
+		if err := envconfig.Process(ctx, &syncCfg); err != nil {
 			return fmt.Errorf("%v", err)
 		}
 
