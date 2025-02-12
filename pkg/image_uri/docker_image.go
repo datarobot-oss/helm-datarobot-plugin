@@ -74,6 +74,15 @@ func (d *DockerUri) Base() string {
 	return d.Join([]string{d.RegistryHost, d.Organization, d.Project, d.ImageName}, "/")
 }
 
+func (d *DockerUri) RefName() string {
+	path := d.Join([]string{d.Organization, d.Project, d.ImageName}, "/")
+	tag := ""
+	if d.Tag != "" {
+		tag = ":" + d.Tag
+	}
+	return fmt.Sprintf("%s%s", path, tag)
+}
+
 func (d *DockerUri) String() string {
 	tag := ""
 	if d.Tag != "" {

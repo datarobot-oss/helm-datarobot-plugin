@@ -220,7 +220,7 @@ func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c save
 
 		// Add metadata to the manifest
 		manifests = append(manifests, ImageManifest{
-			ImageName:     sanitizeFilename(iUri.String()),
+			ImageName:     iUri.RefName(),
 			Layers:        layerDigests,
 			ConfigFile:    filepath.Join("configs", sanitizeFilename(iUri.String())+".config.json"),
 			OriginalImage: iUri.String(),
