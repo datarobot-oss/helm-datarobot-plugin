@@ -3,15 +3,19 @@ package cmd
 import (
 	"archive/tar"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/crane"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/klauspost/compress/zstd"
 	"github.com/sethvargo/go-envconfig"
@@ -38,9 +42,13 @@ Authentication can be provided in various ways, including:
 '''sh
 export REGISTRY_USERNAME=reg_username
 export REGISTRY_PASSWORD=reg_password
-export REGISTRY_HOST=registry.example.com
-$ helm datarobot load images.tgz
+$ helm datarobot load images.tgz -r registry.example.com
 '''
+
+'''sh
+$ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -u reg_username --password-stdin
+'''
+
 `, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -49,103 +57,42 @@ $ helm datarobot load images.tgz
 			return fmt.Errorf("%v", err)
 		}
 
-		zstFile := args[0]
-		// Open the tgz file
-		file, err := os.Open(zstFile)
+		tarballPath := args[0]
+		// Step 1: Extract Tarball
+		err := extractTarball(tarballPath, loadCfg.OutputDir)
 		if err != nil {
-			return fmt.Errorf("failed to open tgz file %q: %v", zstFile, err)
+			fmt.Printf("Error extracting tarball: %v\n", err)
+			return nil
 		}
-		defer file.Close()
 
-		// Create a Zstandard reader
-		zstdReader, err := zstd.NewReader(file)
+		// Step 2: Read Manifest
+		manifestPath := filepath.Join(loadCfg.OutputDir, "manifest.json")
+		manifests, err := readManifest(manifestPath)
 		if err != nil {
-			return fmt.Errorf("failed to create gzip reader: %v", err)
+			fmt.Printf("Error reading manifest: %v\n", err)
+			os.RemoveAll(loadCfg.OutputDir)
+			return nil
 		}
-		defer zstdReader.Close()
 
-		// Create a new tar reader
-		tarReader := tar.NewReader(zstdReader)
-
-		for {
-			// Read the next header from the tar archive
-			header, err := tarReader.Next()
-			if err == io.EOF {
-				break // End of archive
-			}
+		// Step 3: Rebuild and Push Images
+		for _, manifest := range manifests {
+			imageUri, err := rebuildAndPushImage(manifest, loadCfg)
 			if err != nil {
-				return fmt.Errorf("failed to read tar header: %v", err)
-			}
-
-			// Create a temporary file to store the extracted tarball
-			tempFile, err := os.CreateTemp("", "image-*.tar")
-			if err != nil {
-				return fmt.Errorf("failed to create temp file: %v", err)
-			}
-			defer os.Remove(tempFile.Name()) // Clean up temp file
-
-			// Copy the tarball content to the temp file
-			_, err = io.Copy(tempFile, tarReader)
-			if err != nil {
-				tempFile.Close()
-				return fmt.Errorf("failed to copy tarball content: %v", err)
-			}
-			tempFile.Close()
-
-			// Load the Docker image from the tarball
-			image, err := tarball.ImageFromPath(tempFile.Name(), nil)
-			if err != nil {
-				return fmt.Errorf("failed to load Docker image from tarball: %v", err)
-			}
-
-			imageName := loadCfg.RegistryHost + "/" + strings.TrimSuffix(header.Name, ".tgz")
-			iUri, err := image_uri.NewDockerUri(imageName)
-			if err != nil {
-				return err
-			}
-
-			iUri.Organization = iUri.Join([]string{loadCfg.ImagePrefix, iUri.Organization}, "/")
-			iUri.Project = iUri.Join([]string{iUri.Project, loadCfg.ImageSuffix}, "/")
-			if loadCfg.ImageRepo != "" {
-				iUri.Organization = loadCfg.ImageRepo
-				iUri.Project = ""
-			}
-
-			if loadCfg.DryRun {
-				cmd.Printf("[Dry-Run] Pushing image: %s\n", iUri.String())
-				continue
-			}
-
-			ref, err := name.NewTag(iUri.String())
-			if err != nil {
-				return fmt.Errorf("failed to create image reference: %v", err)
-			}
-
-			transport, err := GetTransport(loadCfg.CaCertPath, loadCfg.CertPath, loadCfg.KeyPath, loadCfg.SkipTlsVerify)
-			if err != nil {
-				return fmt.Errorf("failed to GetTransport: %w", err)
-			}
-
-			auth := authn.Anonymous
-			if loadCfg.Token != "" {
-				auth = &authn.Bearer{
-					Token: loadCfg.Token,
-				}
-			}
-			if loadCfg.Username != "" && loadCfg.Password != "" {
-				auth = &authn.Basic{
-					Username: loadCfg.Username,
-					Password: loadCfg.Password,
-				}
-			}
-			err = remote.Write(ref, image, remote.WithTransport(transport), remote.WithAuth(auth))
-			if err != nil {
-				return fmt.Errorf("failed to push Docker image to registry: %v", err)
+				return fmt.Errorf("Error processing image %s: %v\n", manifest.OriginalImage, err)
 			} else {
-				cmd.Printf("Successfully pushed image %s\n", ref.Name())
+				if loadCfg.DryRun {
+					cmd.Printf("[Dry-Run] Pushing image: %s\n", imageUri)
+				} else {
+					cmd.Printf("Successfully pushed image: %s\n", imageUri)
+				}
+
 			}
 		}
 
+		err = os.RemoveAll(loadCfg.OutputDir)
+		if err != nil {
+			return fmt.Errorf("Error Tmp Folder: %v\n", err)
+		}
 		return nil
 	},
 }
@@ -161,6 +108,7 @@ type loadConfig struct {
 	CaCertPath    string `env:"CA_CERT_PATH"`
 	CertPath      string `env:"CERT_PATH"`
 	KeyPath       string `env:"KEY_PATH"`
+	OutputDir     string `env:"OUTPUT_DIR"`
 	SkipTlsVerify bool   `env:"SKIP_TLS_VERIFY"`
 	DryRun        bool   `env:"DRY_RUN"`
 }
@@ -176,9 +124,179 @@ func init() {
 	loadCmd.Flags().StringVarP(&loadCfg.ImagePrefix, "prefix", "", "", "append prefix on repo name")
 	loadCmd.Flags().StringVarP(&loadCfg.ImageRepo, "repo", "", "", "rewrite the target repository name")
 	loadCmd.Flags().StringVarP(&loadCfg.ImageSuffix, "suffix", "", "", "append suffix on repo name")
+	loadCmd.Flags().StringVarP(&loadCfg.OutputDir, "output-dir", "", "export", "file to save")
 	loadCmd.Flags().StringVarP(&loadCfg.CaCertPath, "ca-cert", "c", "", "Path to the custom CA certificate")
 	loadCmd.Flags().StringVarP(&loadCfg.CertPath, "cert", "C", "", "Path to the client certificate")
 	loadCmd.Flags().StringVarP(&loadCfg.KeyPath, "key", "K", "", "Path to the client key")
 	loadCmd.Flags().BoolVarP(&loadCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
 	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
+}
+
+func extractTarball(tarballPath, outputDir string) error {
+	// fmt.Printf("Extracting tarball %s to %s...\n", tarballPath, outputDir)
+
+	// Open the tarball
+	file, err := os.Open(tarballPath)
+	if err != nil {
+		return fmt.Errorf("error opening tarball: %v", err)
+	}
+	defer file.Close()
+
+	zstdReader, err := zstd.NewReader(file)
+	if err != nil {
+		return fmt.Errorf("failed to create zstd reader: %v", err)
+	}
+	defer zstdReader.Close()
+
+	// Create a tar reader
+	tarReader := tar.NewReader(zstdReader)
+
+	// Extract files
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return fmt.Errorf("error reading tar header: %v", err)
+		}
+
+		// Determine the output path
+		outputPath := filepath.Join(outputDir, header.Name)
+
+		// Handle directories
+		if header.Typeflag == tar.TypeDir {
+			os.MkdirAll(outputPath, 0755)
+			continue
+		}
+
+		// Handle files
+		if header.Typeflag == tar.TypeReg {
+			os.MkdirAll(filepath.Dir(outputPath), 0755)
+			outFile, err := os.Create(outputPath)
+			if err != nil {
+				return fmt.Errorf("error creating file %s: %v", outputPath, err)
+			}
+			defer outFile.Close()
+
+			_, err = io.Copy(outFile, tarReader)
+			if err != nil {
+				return fmt.Errorf("error writing file %s: %v", outputPath, err)
+			}
+		}
+	}
+
+	// fmt.Println("Extraction complete.")
+	return nil
+}
+
+func readManifest(manifestPath string) ([]ImageManifest, error) {
+	// fmt.Printf("Reading manifest from %s...\n", manifestPath)
+
+	file, err := os.Open(manifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("error opening manifest file: %v", err)
+	}
+	defer file.Close()
+
+	var manifests []ImageManifest
+	err = json.NewDecoder(file).Decode(&manifests)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding manifest: %v", err)
+	}
+
+	// fmt.Println("Manifest successfully read.")
+	return manifests, nil
+}
+
+func rebuildAndPushImage(manifest ImageManifest, c loadConfig) (string, error) {
+	// fmt.Printf("Rebuilding and pushing image: %s...\n", manifest.OriginalImage)
+
+	// Step 1: Load Config File
+	configPath := filepath.Join(c.OutputDir, manifest.ConfigFile)
+	configFile, err := loadConfigFile(configPath)
+	if err != nil {
+		return "", fmt.Errorf("error loading config file %s: %v", configPath, err)
+	}
+
+	// Step 2: Load Layers
+	var layers []v1.Layer
+	for _, layerDigest := range manifest.Layers {
+		layerPath := filepath.Join(c.OutputDir, "layers", layerDigest+".tar.gz")
+		layer, err := tarball.LayerFromFile(layerPath)
+		if err != nil {
+			return "", fmt.Errorf("error loading layer %s: %v", layerPath, err)
+		}
+		layers = append(layers, layer)
+	}
+
+	// Step 3: Rebuild the Image
+	emptyImage := empty.Image
+	image, err := mutate.ConfigFile(emptyImage, configFile)
+	if err != nil {
+		return "", fmt.Errorf("error setting config file: %v", err)
+	}
+	image, err = mutate.AppendLayers(image, layers...)
+	if err != nil {
+		return "", fmt.Errorf("error appending layers: %v", err)
+	}
+
+	// Step 4: Push the Image to the Registry
+	targetRef := fmt.Sprintf("%s/%s", c.RegistryHost, manifest.ImageName)
+	iUri, err := image_uri.NewDockerUri(targetRef)
+	if err != nil {
+		return "", err
+	}
+
+	iUri.Organization = iUri.Join([]string{c.ImagePrefix, iUri.Organization}, "/")
+	iUri.Project = iUri.Join([]string{iUri.Project, c.ImageSuffix}, "/")
+	if c.ImageRepo != "" {
+		iUri.Organization = c.ImageRepo
+		iUri.Project = ""
+	}
+
+	transport, err := GetTransport(c.CaCertPath, c.CertPath, c.KeyPath, c.SkipTlsVerify)
+	if err != nil {
+		return "", fmt.Errorf("failed to GetTransport: %w", err)
+	}
+
+	auth := authn.Anonymous
+	if c.Token != "" {
+		auth = &authn.Bearer{
+			Token: c.Token,
+		}
+	}
+	if c.Username != "" && c.Password != "" {
+		auth = &authn.Basic{
+			Username: c.Username,
+			Password: c.Password,
+		}
+	}
+	if c.DryRun {
+		return iUri.String(), nil
+	}
+	err = crane.Push(image, iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
+	if err != nil {
+		return "", fmt.Errorf("error pushing image: %v", err)
+	} else {
+		return iUri.String(), nil
+	}
+}
+
+func loadConfigFile(configPath string) (*v1.ConfigFile, error) {
+	// fmt.Printf("Loading config file %s...\n", configPath)
+
+	file, err := os.Open(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("error opening config file: %v", err)
+	}
+	defer file.Close()
+
+	var configFile v1.ConfigFile
+	err = json.NewDecoder(file).Decode(&configFile)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding config file: %v", err)
+	}
+
+	return &configFile, nil
 }
