@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -102,4 +103,16 @@ Skipping image: docker.io/alpine/curl:8.9.2
 		assert.Equal(t, expectedOutput, output)
 	})
 
+	t.Run("local-registry-insecure", func(t *testing.T) {
+		os.Setenv("REGISTRY_USERNAME", "admin")
+		os.Setenv("REGISTRY_PASSWORD", "pass")
+		os.Setenv("REGISTRY_HOST", "localhost:5000")
+		os.Setenv("SKIP_TLS_VERIFY", "true")
+		os.Setenv("DRY_RUN", "true")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -a custom/images")
+		assert.NoError(t, err)
+		expectedLoadOutput := `[Dry-Run] Pulling image: docker.io/datarobotdev/test-image4:4.0.0
+[Dry-Run] Pushing image: localhost:5000/datarobotdev/test-image4:4.0.0`
+		assert.Equal(t, expectedLoadOutput, output)
+	})
 }

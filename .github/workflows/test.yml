@@ -35,8 +35,14 @@ jobs:
         with:
           version: v3.16.3
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23
+
       - name: Docs
         run: |
+          go version
           make docs
           if [[ $(git status --porcelain) ]]; then
             echo "Documentation is out of date, please update it"

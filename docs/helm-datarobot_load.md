@@ -20,13 +20,9 @@ Authentication can be provided in various ways, including:
 ```sh
 export REGISTRY_USERNAME=reg_username
 export REGISTRY_PASSWORD=reg_password
-$ helm datarobot load images.tgz -r registry.example.com
+export REGISTRY_HOST=registry.example.com
+$ helm datarobot load images.tgz
 ```
-
-```sh
-$ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -u reg_username --password-stdin
-```
-
 
 
 ```
@@ -43,7 +39,6 @@ helm-datarobot load [flags]
   -i, --insecure          Skip server certificate verification
   -K, --key string        Path to the client key
   -p, --password string   pass to auth
-      --password-stdin    Read password from stdin
       --prefix string     append prefix on repo name
   -r, --registry string   registry to auth
       --repo string       rewrite the target repository name
