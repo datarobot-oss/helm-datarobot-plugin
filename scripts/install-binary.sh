@@ -102,7 +102,7 @@ fail_trap() {
   result=$?
   if [ "$result" != "0" ]; then
     echo "Failed to install $PROJECT_NAME"
-    echo "\tFor support, go to https://github.com/datarobot-oss/helm-datarobot-plugin/issues/new?template=bug-report.md"
+    echo "\tFor support, go to https://github.com/$PROJECT_GH/issues/new?template=bug-report.md"
   fi
   exit $result
 }
