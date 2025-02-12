@@ -81,10 +81,10 @@ $ du -h images.tar.zst
 			return fmt.Errorf("Error creating tarball: %v\n", err)
 		}
 
-		// err = os.RemoveAll(saveCfg.OutputDir)
-		// if err != nil {
-		// 	return fmt.Errorf("Error Tmp Folder: %v\n", err)
-		// }
+		err = os.RemoveAll(saveCfg.OutputDir)
+		if err != nil {
+			return fmt.Errorf("Error Tmp Folder: %v\n", err)
+		}
 
 		if saveCfg.DryRun {
 			cmd.Printf("[Dry-Run] Tarball created successfully: %s\n", saveCfg.Output)

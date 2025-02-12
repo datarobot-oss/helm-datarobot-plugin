@@ -66,6 +66,33 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 			t.Fatalf("Failed to remove file: %v", err)
 		}
 	})
+	t.Run("layers", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart6 -a layers --output "+SAVE_TEST_ARCHIVE)
+		assert.NoError(t, err)
+
+		expectedOutput := `Pulling image: docker.io/nginx:1.27.4-alpine
+ReTagging image: docker.io/nginx:1.27.4-alpine > docker.io/nginx:simple
+Pulling image: docker.io/nginx:1.27.4-alpine3.21
+Pulling image: docker.io/nginx:1.27-alpine3.21
+Tarball created successfully: ` + SAVE_TEST_ARCHIVE
+
+		assert.Equal(t, expectedOutput, output)
+
+		// Check if the file exists
+		fileInfo, err := os.Stat(SAVE_TEST_ARCHIVE)
+		if os.IsNotExist(err) {
+			t.Errorf("File was not created: %s", SAVE_TEST_ARCHIVE)
+		}
+
+		if fileInfo.Size() > 20800511 {
+			t.Errorf("File size  error: %v", fileInfo.Size())
+		}
+		// Clean up: remove the file after the test
+		err = os.Remove(SAVE_TEST_ARCHIVE)
+		if err != nil {
+			t.Fatalf("Failed to remove file: %v", err)
+		}
+	})
 
 	t.Run("skip-image-group", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart6 --dry-run -a image/groups --skip-group test1 --skip-group test2 --output "+SAVE_TEST_ARCHIVE)
