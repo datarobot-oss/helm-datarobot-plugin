@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,6 +41,11 @@ $ du -h images.tar.zst
 '''`, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		ctx := context.Background()
+		if err := envconfig.Process(ctx, &loadCfg); err != nil {
+			return fmt.Errorf("%v", err)
+		}
 
 		levelMap := map[string]zstd.EncoderLevel{
 			"fastest": zstd.SpeedFastest,
@@ -166,10 +170,6 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveCfg.CompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
 	saveCmd.Flags().StringArrayVarP(&saveCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 	saveCmd.Flags().BoolVarP(&saveCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
-	ctx := context.Background()
-	if err := envconfig.Process(ctx, &saveCfg); err != nil {
-		log.Fatal(err)
-	}
 }
 
 // CreateZST creates a .zst archive from the specified input TGZ files
