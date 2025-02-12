@@ -159,7 +159,11 @@ func extractTarball(tarballPath, outputDir string) error {
 		}
 
 		// Determine the output path
-		outputPath := filepath.Join(outputDir, header.Name)
+		cleanName := filepath.Clean(header.Name)
+		if strings.Contains(cleanName, "..") {
+			return fmt.Errorf("invalid file path: %s", header.Name)
+		}
+		outputPath := filepath.Join(outputDir, cleanName)
 
 		// Handle directories
 		if header.Typeflag == tar.TypeDir {
