@@ -25,6 +25,7 @@ $ helm datarobot load images.tgz
 ```
 
 
+
 ```
 helm-datarobot load [flags]
 ```
@@ -32,19 +33,20 @@ helm-datarobot load [flags]
 ### Options
 
 ```
-  -c, --ca-cert string    Path to the custom CA certificate
-  -C, --cert string       Path to the client certificate
-      --dry-run           Perform a dry run without making changes
-  -h, --help              help for load
-  -i, --insecure          Skip server certificate verification
-  -K, --key string        Path to the client key
-  -p, --password string   pass to auth
-      --prefix string     append prefix on repo name
-  -r, --registry string   registry to auth
-      --repo string       rewrite the target repository name
-      --suffix string     append suffix on repo name
-  -t, --token string      pass to auth
-  -u, --username string   username to auth
+  -c, --ca-cert string      Path to the custom CA certificate
+  -C, --cert string         Path to the client certificate
+      --dry-run             Perform a dry run without making changes
+  -h, --help                help for load
+  -i, --insecure            Skip server certificate verification
+  -K, --key string          Path to the client key
+      --output-dir string   file to save (default "export")
+  -p, --password string     pass to auth
+      --prefix string       append prefix on repo name
+  -r, --registry string     registry to auth
+      --repo string         rewrite the target repository name
+      --suffix string       append suffix on repo name
+  -t, --token string        pass to auth
+  -u, --username string     username to auth
 ```
 
 ### SEE ALSO

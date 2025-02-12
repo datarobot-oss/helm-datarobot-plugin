@@ -11,18 +11,15 @@ const SAVE_TEST_ARCHIVE = "image-load.tar.zst"
 
 func TestCommandSave(t *testing.T) {
 
-	t.Run("test-chart4-dry-run", func(t *testing.T) {
+	t.Run("dry-run", func(t *testing.T) {
 
-		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 -a custom/images-duplicated --dry-run --output "+SAVE_TEST_ARCHIVE+" -a \"datarobot.com/images\"")
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 -a custom/images-duplicated --dry-run --output "+SAVE_TEST_ARCHIVE+" -a datarobot.com/images")
 		assert.NoError(t, err)
 		expectedOutput := `[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.1
 [Dry-Run] ReTagging image: docker.io/alpine/curl:8.9.1 > docker.io/alpine/curl:stable
-[Dry-Run] adding image to tgz: alpine/curl:stable.tgz
 [Dry-Run] Pulling image: docker.io/busybox:1.36.1
 [Dry-Run] ReTagging image: docker.io/busybox:1.36.1 > docker.io/busybox:simple
-[Dry-Run] adding image to tgz: busybox:simple.tgz
 [Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0
-[Dry-Run] adding image to tgz: alpine/curl:8.10.0.tgz
 [Dry-Run] Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 		assert.Equal(t, expectedOutput, output)
 	})
@@ -33,7 +30,6 @@ func TestCommandSave(t *testing.T) {
 		assert.NoError(t, err)
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
 Pulling image: docker.io/alpine/curl:8.9.1
- archive alpine/curl:8.9.1.tgz already exists
 Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 
 		assert.Equal(t, expectedOutput, output)
@@ -46,8 +42,8 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 		}
 	})
 
-	t.Run("test-chart4", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 --dry-run=false -a datarobot.com/images --output "+SAVE_TEST_ARCHIVE)
+	t.Run("full", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart4 -a datarobot.com/images --output "+SAVE_TEST_ARCHIVE)
 		assert.NoError(t, err)
 
 		expectedOutput := `Pulling image: docker.io/alpine/curl:8.9.1
@@ -70,6 +66,33 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 			t.Fatalf("Failed to remove file: %v", err)
 		}
 	})
+	t.Run("layers", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart6 -a layers --output "+SAVE_TEST_ARCHIVE)
+		assert.NoError(t, err)
+
+		expectedOutput := `Pulling image: docker.io/nginx:1.27.4-alpine
+ReTagging image: docker.io/nginx:1.27.4-alpine > docker.io/nginx:simple
+Pulling image: docker.io/nginx:1.27.4-alpine3.21
+Pulling image: docker.io/nginx:1.27-alpine3.21
+Tarball created successfully: ` + SAVE_TEST_ARCHIVE
+
+		assert.Equal(t, expectedOutput, output)
+
+		// Check if the file exists
+		fileInfo, err := os.Stat(SAVE_TEST_ARCHIVE)
+		if os.IsNotExist(err) {
+			t.Errorf("File was not created: %s", SAVE_TEST_ARCHIVE)
+		}
+
+		if fileInfo.Size() > 20800511 {
+			t.Errorf("File size  error: %v", fileInfo.Size())
+		}
+		// Clean up: remove the file after the test
+		err = os.Remove(SAVE_TEST_ARCHIVE)
+		if err != nil {
+			t.Fatalf("Failed to remove file: %v", err)
+		}
+	})
 
 	t.Run("skip-image-group", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart6 --dry-run -a image/groups --skip-group test1 --skip-group test2 --output "+SAVE_TEST_ARCHIVE)
@@ -81,7 +104,6 @@ Skipping image: docker.io/alpine/curl:8.9.11
 Skipping image: docker.io/alpine/curl:8.9.2
 
 [Dry-Run] Pulling image: docker.io/alpine/curl:8.9.3
-[Dry-Run] adding image to tgz: alpine/curl:8.9.3.tgz
 [Dry-Run] Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 
 		assert.Equal(t, expectedOutput, output)

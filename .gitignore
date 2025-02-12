@@ -9,7 +9,7 @@ tests/registry/certs/*
 /.idea/*
 .vscode
 .DS_Store
-
+**/export
 # tests/charts Helm charts
 tests/charts/*/Chart.lock
 tests/charts/*/charts/

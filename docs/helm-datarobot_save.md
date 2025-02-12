@@ -33,6 +33,7 @@ helm-datarobot save [flags]
   -h, --help                     help for save
   -l, --level string             zstd compression level (Available options: fastest, default, better, best) (default "best")
   -o, --output string            file to save (default "images.tar.zst")
+      --output-dir string        file to save (default "export")
       --skip-group stringArray   Specify which image group should be skipped (can be used multiple times)
 ```
 

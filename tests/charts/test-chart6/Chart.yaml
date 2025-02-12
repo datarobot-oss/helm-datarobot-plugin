@@ -6,6 +6,14 @@ version: 0.1.0
 appVersion: "1.36.1"
 
 annotations:
+  layers: |
+    - name: nginx1
+      image: docker.io/nginx:1.27.4-alpine
+      tag: simple
+    - name: nginx2
+      image: docker.io/nginx:1.27.4-alpine3.21
+    - name: nginx3
+      image: docker.io/nginx:1.27-alpine3.21
   datarobot.com/images: |
     - name: curl
       image: docker.io/alpine/curl:8.9.1
