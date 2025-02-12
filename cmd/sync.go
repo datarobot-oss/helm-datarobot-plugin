@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
@@ -40,6 +39,10 @@ $ helm datarobot sync tests/charts/test-chart1/
 '''
 `, "'", "`", -1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+		if err := envconfig.Process(ctx, &loadCfg); err != nil {
+			return fmt.Errorf("%v", err)
+		}
 
 		if syncCfg.RegistryHost == "" {
 			return fmt.Errorf("Registry Host not set")
@@ -159,8 +162,4 @@ func init() {
 	syncCmd.Flags().StringVarP(&syncCfg.KeyPath, "key", "K", "", "Path to the client key")
 	syncCmd.Flags().BoolVarP(&syncCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
-	ctx := context.Background()
-	if err := envconfig.Process(ctx, &syncCfg); err != nil {
-		log.Fatal(err)
-	}
 }
