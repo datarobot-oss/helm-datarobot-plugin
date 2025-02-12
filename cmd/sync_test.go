@@ -108,10 +108,11 @@ Skipping image: docker.io/alpine/curl:8.9.2
 		os.Setenv("REGISTRY_PASSWORD", "pass")
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -a custom/images ")
+		os.Setenv("DRY_RUN", "true")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart4 -a custom/images")
 		assert.NoError(t, err)
-		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
-	Successfully pushed image localhost:5000/busybox:1.36.1`
+		expectedLoadOutput := `[Dry-Run] Pulling image: docker.io/datarobotdev/test-image4:4.0.0
+[Dry-Run] Pushing image: localhost:5000/datarobotdev/test-image4:4.0.0`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
 }
