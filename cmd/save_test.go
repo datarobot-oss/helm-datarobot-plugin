@@ -77,7 +77,6 @@ Skipping image: docker.io/alpine/curl:8.9.11
 Skipping image: docker.io/alpine/curl:8.9.2
 
 [Dry-Run] Pulling image: docker.io/alpine/curl:8.9.3
-[Dry-Run] adding image to tgz: alpine/curl:8.9.3.tgz
 [Dry-Run] Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 
 		assert.Equal(t, expectedOutput, output)

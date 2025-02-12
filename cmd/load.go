@@ -80,7 +80,7 @@ $ helm datarobot load images.tgz
 				if loadCfg.DryRun {
 					cmd.Printf("[Dry-Run] Pushing image: %s\n", imageUri)
 				} else {
-					cmd.Printf("Successfully pushed image: %s\n", imageUri)
+					cmd.Printf("Successfully pushed image %s\n", imageUri)
 				}
 
 			}
