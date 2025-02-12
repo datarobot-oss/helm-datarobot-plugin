@@ -27,7 +27,7 @@ builds:
 
 archives:
 - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
-  format: binary
+  formats: [ 'binary' ]
 
 sboms:
   - artifacts: binary
