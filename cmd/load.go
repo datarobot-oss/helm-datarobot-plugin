@@ -42,11 +42,8 @@ Authentication can be provided in various ways, including:
 '''sh
 export REGISTRY_USERNAME=reg_username
 export REGISTRY_PASSWORD=reg_password
-$ helm datarobot load images.tgz -r registry.example.com
-'''
-
-'''sh
-$ echo "reg_password" | helm datarobot load images.tgz -r registry.example.com -u reg_username --password-stdin
+export REGISTRY_HOST=registry.example.com
+$ helm datarobot load images.tgz
 '''
 
 `, "'", "`", -1),
