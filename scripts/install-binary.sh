@@ -60,8 +60,8 @@ downloadRelease() {
 
   echo "Downloading $BIN_URL"
   if type "curl" > /dev/null; then
-    curl -L "$BIN_URL" -o "$PLUGIN_TMP_FILE"
-    curl -L "$CHECKSUM_URL" -o "$CHECKSUM_TMP_FILE"
+    curl -sSL "$BIN_URL" -o "$PLUGIN_TMP_FILE"
+    curl -sSL "$CHECKSUM_URL" -o "$CHECKSUM_TMP_FILE"
   elif type "wget" > /dev/null; then
     wget -q -O "$PLUGIN_TMP_FILE" "$BIN_URL"
     wget -q -O "$CHECKSUM_TMP_FILE" "$CHECKSUM_URL"
@@ -102,7 +102,7 @@ fail_trap() {
   result=$?
   if [ "$result" != "0" ]; then
     echo "Failed to install $PROJECT_NAME"
-    echo "\tFor support, go to https://github.com/kubernetes/helm."
+    echo "\tFor support, go to https://github.com/datarobot-oss/helm-datarobot-plugin/issues/new?template=bug-report.md"
   fi
   exit $result
 }
