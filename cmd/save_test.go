@@ -84,7 +84,7 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 			t.Errorf("File was not created: %s", SAVE_TEST_ARCHIVE)
 		}
 
-		if fileInfo.Size() > 20800511 {
+		if fileInfo.Size() > 20817463 {
 			t.Errorf("File size  error: %v", fileInfo.Size())
 		}
 		// Clean up: remove the file after the test

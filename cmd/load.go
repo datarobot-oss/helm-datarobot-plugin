@@ -13,9 +13,11 @@ import (
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/klauspost/compress/zstd"
 	"github.com/sethvargo/go-envconfig"
@@ -276,6 +278,36 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig) (string, error) {
 	if c.DryRun {
 		return iUri.String(), nil
 	}
+
+	// Push each layer individually to ensure they are available in the registry
+	for _, layer := range layers {
+		layerDigest, err := layer.Digest()
+		if err != nil {
+			return "", fmt.Errorf("error getting layer digest: %v", err)
+		}
+		layerPath := filepath.Join(c.OutputDir, "layers", strings.TrimPrefix(layerDigest.String(), "sha256:")+".tar.gz")
+		layerFile, err := os.Open(layerPath)
+		if err != nil {
+			return "", fmt.Errorf("error opening layer file %s: %v", layerPath, err)
+		}
+		defer layerFile.Close()
+
+		layer, err := tarball.LayerFromReader(layerFile)
+		if err != nil {
+			return "", fmt.Errorf("error creating layer from file %s: %v", layerPath, err)
+		}
+
+		repo, err := name.NewRepository(iUri.Base())
+		if err != nil {
+			return "", fmt.Errorf("error creating repository from URI %s: %v", iUri.String(), err)
+		}
+		err = remote.WriteLayer(repo, layer, remote.WithTransport(transport), remote.WithAuth(auth))
+		if err != nil {
+			return "", fmt.Errorf("error pushing layer %s: %v", layerDigest.String(), err)
+		}
+	}
+
+	// Push the final image manifest
 	err = crane.Push(image, iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
 	if err != nil {
 		return "", fmt.Errorf("error pushing image: %v", err)
