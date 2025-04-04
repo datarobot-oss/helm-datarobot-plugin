@@ -244,6 +244,26 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig) (string, error) {
 		return "", fmt.Errorf("error appending layers: %v", err)
 	}
 
+	// Ensure the RootFS.DiffIDs match the layers
+	var diffIDs []v1.Hash
+	for _, layer := range layers {
+		diffID, err := layer.DiffID()
+		if err != nil {
+			return "", fmt.Errorf("error getting layer DiffID: %v", err)
+		}
+		diffIDs = append(diffIDs, diffID)
+	}
+
+	configFile.RootFS = v1.RootFS{
+		Type:    "layers",
+		DiffIDs: diffIDs,
+	}
+
+	image, err = mutate.ConfigFile(image, configFile)
+	if err != nil {
+		return "", fmt.Errorf("error updating config file with RootFS: %v", err)
+	}
+
 	// Step 4: Push the Image to the Registry
 	targetRef := fmt.Sprintf("%s/%s", c.RegistryHost, manifest.ImageName)
 	iUri, err := image_uri.NewDockerUri(targetRef)
