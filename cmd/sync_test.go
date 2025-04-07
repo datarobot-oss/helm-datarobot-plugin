@@ -131,7 +131,7 @@ Pushing image: localhost:5000/alpine/curl:8.11.1`
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
 
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 ")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 --overwrite -a ex4")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.11.1
 Pushing image: localhost:5000/alpine/curl:8.11.1`
