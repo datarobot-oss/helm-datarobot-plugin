@@ -102,6 +102,20 @@ Skipping image: docker.io/alpine/curl:8.9.2
 
 		assert.Equal(t, expectedOutput, output)
 	})
+	t.Run("skip-image", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -r registry.example.com --dry-run -a image/groups --skip-image docker.io/alpine/curl:8.9.10 --skip-image docker.io/alpine/curl:8.9.11 --skip-image docker.io/alpine/curl:8.9.2")
+		assert.NoError(t, err)
+		expectedOutput := `Skipping image: docker.io/alpine/curl:8.9.10
+
+Skipping image: docker.io/alpine/curl:8.9.11
+
+Skipping image: docker.io/alpine/curl:8.9.2
+
+[Dry-Run] Pulling image: docker.io/alpine/curl:8.9.3
+[Dry-Run] Pushing image: registry.example.com/alpine/curl:8.9.3`
+
+		assert.Equal(t, expectedOutput, output)
+	})
 
 	t.Run("local-registry-insecure", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")

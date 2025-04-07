@@ -75,6 +75,15 @@ $ helm datarobot load images.tgz
 
 		// Step 3: Rebuild and Push Images
 		for _, manifest := range manifests {
+
+			if len(loadCfg.ImageSkip) > 0 {
+				for _, skip := range loadCfg.ImageSkip {
+					if strings.Contains(manifest.ImageName, skip) {
+						cmd.Printf("Skipping image: %s\n", manifest.ImageName)
+						continue
+					}
+				}
+			}
 			imageUri, err := rebuildAndPushImage(manifest, loadCfg, cmd)
 			if err != nil {
 				return fmt.Errorf("Error processing image %s: %v\n", manifest.OriginalImage, err)
@@ -97,20 +106,21 @@ $ helm datarobot load images.tgz
 }
 
 type loadConfig struct {
-	Username      string `env:"REGISTRY_USERNAME"`
-	Password      string `env:"REGISTRY_PASSWORD"`
-	Token         string `env:"REGISTRY_TOKEN"`
-	RegistryHost  string `env:"REGISTRY_HOST"`
-	ImagePrefix   string `env:"IMAGE_PREFIX"`
-	ImageSuffix   string `env:"IMAGE_SUFFIX"`
-	ImageRepo     string `env:"IMAGE_REPO"`
-	CaCertPath    string `env:"CA_CERT_PATH"`
-	CertPath      string `env:"CERT_PATH"`
-	KeyPath       string `env:"KEY_PATH"`
-	OutputDir     string `env:"OUTPUT_DIR"`
-	SkipTlsVerify bool   `env:"SKIP_TLS_VERIFY"`
-	Overwrite     bool   `env:"OVERWRITE"`
-	DryRun        bool   `env:"DRY_RUN"`
+	Username      string   `env:"REGISTRY_USERNAME"`
+	Password      string   `env:"REGISTRY_PASSWORD"`
+	Token         string   `env:"REGISTRY_TOKEN"`
+	RegistryHost  string   `env:"REGISTRY_HOST"`
+	ImagePrefix   string   `env:"IMAGE_PREFIX"`
+	ImageSuffix   string   `env:"IMAGE_SUFFIX"`
+	ImageRepo     string   `env:"IMAGE_REPO"`
+	CaCertPath    string   `env:"CA_CERT_PATH"`
+	CertPath      string   `env:"CERT_PATH"`
+	KeyPath       string   `env:"KEY_PATH"`
+	OutputDir     string   `env:"OUTPUT_DIR"`
+	ImageSkip     []string `env:"IMAGE_SKIP"`
+	SkipTlsVerify bool     `env:"SKIP_TLS_VERIFY"`
+	Overwrite     bool     `env:"OVERWRITE"`
+	DryRun        bool     `env:"DRY_RUN"`
 }
 
 var loadCfg loadConfig
@@ -131,6 +141,7 @@ func init() {
 	loadCmd.Flags().BoolVarP(&loadCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
 	loadCmd.Flags().BoolVarP(&loadCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
+	loadCmd.Flags().StringArrayVarP(&loadCfg.ImageSkip, "skip-image", "", []string{}, "Specify which image should be skipped (can be used multiple times)")
 }
 
 func extractTarball(tarballPath, outputDir string) error {

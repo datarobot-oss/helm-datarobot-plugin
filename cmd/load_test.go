@@ -42,6 +42,14 @@ Tarball created successfully: image-load.tar.zst`
 [Dry-Run] Pushing image: localhost:5000/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
+	t.Run("skip-image", func(t *testing.T) {
+		os.Setenv("REGISTRY_HOST", "localhost:5000")
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" --dry-run --image-skip alpine/curl:8.9.1 ")
+		assert.NoError(t, err)
+		expectedLoadOutput := `[Dry-Run] Pushing image: localhost:5000/alpine/curl:8.9.1
+[Dry-Run] Pushing image: localhost:5000/busybox:1.36.1`
+		assert.Equal(t, expectedLoadOutput, output)
+	})
 	t.Run("local-registry-insecure", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
