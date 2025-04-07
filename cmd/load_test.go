@@ -71,13 +71,6 @@ Successfully pushed image ttl.sh/prefix/suffix/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
 
-	t.Run("local", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 -u admin -p pass --insecure")
-		assert.NoError(t, err)
-		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
-Successfully pushed image localhost:5000/busybox:1.36.1`
-		assert.Equal(t, expectedLoadOutput, output)
-	})
 	t.Run("duplicated", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 -u admin -p pass --insecure")
 		assert.NoError(t, err)
