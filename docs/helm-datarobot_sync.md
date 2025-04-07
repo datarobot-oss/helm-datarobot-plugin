@@ -46,6 +46,7 @@ helm-datarobot sync [flags]
   -r, --registry string          registry to auth
       --repo string              rewrite the target repository name
       --skip-group stringArray   Specify which image group should be skipped (can be used multiple times)
+      --skip-image stringArray   Specify which image should be skipped (can be used multiple times)
       --suffix string            append suffix on repo name
   -t, --token string             pass to auth
   -u, --username string          username to auth

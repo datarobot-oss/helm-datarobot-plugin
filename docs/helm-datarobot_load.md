@@ -33,21 +33,22 @@ helm-datarobot load [flags]
 ### Options
 
 ```
-  -c, --ca-cert string      Path to the custom CA certificate
-  -C, --cert string         Path to the client certificate
-      --dry-run             Perform a dry run without making changes
-  -h, --help                help for load
-  -i, --insecure            Skip server certificate verification
-  -K, --key string          Path to the client key
-      --output-dir string   file to save (default "export")
-      --overwrite           Overwrite existing images
-  -p, --password string     pass to auth
-      --prefix string       append prefix on repo name
-  -r, --registry string     registry to auth
-      --repo string         rewrite the target repository name
-      --suffix string       append suffix on repo name
-  -t, --token string        pass to auth
-  -u, --username string     username to auth
+  -c, --ca-cert string           Path to the custom CA certificate
+  -C, --cert string              Path to the client certificate
+      --dry-run                  Perform a dry run without making changes
+  -h, --help                     help for load
+  -i, --insecure                 Skip server certificate verification
+  -K, --key string               Path to the client key
+      --output-dir string        file to save (default "export")
+      --overwrite                Overwrite existing images
+  -p, --password string          pass to auth
+      --prefix string            append prefix on repo name
+  -r, --registry string          registry to auth
+      --repo string              rewrite the target repository name
+      --skip-image stringArray   Specify which image should be skipped (can be used multiple times)
+      --suffix string            append suffix on repo name
+  -t, --token string             pass to auth
+  -u, --username string          username to auth
 ```
 
 ### SEE ALSO
