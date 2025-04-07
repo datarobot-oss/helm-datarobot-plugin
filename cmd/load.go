@@ -232,6 +232,48 @@ func readManifest(manifestPath string) ([]ImageManifest, error) {
 func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Command) (string, error) {
 	// fmt.Printf("Rebuilding and pushing image: %s...\n", manifest.OriginalImage)
 
+	targetRef := fmt.Sprintf("%s/%s", c.RegistryHost, manifest.ImageName)
+	iUri, err := image_uri.NewDockerUri(targetRef)
+	if err != nil {
+		return "", err
+	}
+
+	iUri.Organization = iUri.Join([]string{c.ImagePrefix, iUri.Organization}, "/")
+	iUri.Project = iUri.Join([]string{iUri.Project, c.ImageSuffix}, "/")
+	if c.ImageRepo != "" {
+		iUri.Organization = c.ImageRepo
+		iUri.Project = ""
+	}
+
+	transport, err := GetTransport(c.CaCertPath, c.CertPath, c.KeyPath, c.SkipTlsVerify)
+	if err != nil {
+		return "", fmt.Errorf("failed to GetTransport: %w", err)
+	}
+
+	auth := authn.Anonymous
+	if c.Token != "" {
+		auth = &authn.Bearer{
+			Token: c.Token,
+		}
+	}
+	if c.Username != "" && c.Password != "" {
+		auth = &authn.Basic{
+			Username: c.Username,
+			Password: c.Password,
+		}
+	}
+	if c.DryRun {
+		return iUri.String(), nil
+	}
+
+	if !c.Overwrite {
+		mfs, _ := crane.Manifest(iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
+		if len(mfs) > 0 {
+			cmd.Printf("image %s already exists in the registry\n", iUri.String())
+			return iUri.String(), nil
+		}
+	}
+
 	// Step 1: Load Config File
 	configPath := filepath.Join(c.OutputDir, manifest.ConfigFile)
 	configFile, err := loadConfigFile(configPath)
@@ -279,49 +321,6 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 	image, err = mutate.ConfigFile(image, configFile)
 	if err != nil {
 		return "", fmt.Errorf("error updating config file with RootFS: %v", err)
-	}
-
-	// Step 4: Push the Image to the Registry
-	targetRef := fmt.Sprintf("%s/%s", c.RegistryHost, manifest.ImageName)
-	iUri, err := image_uri.NewDockerUri(targetRef)
-	if err != nil {
-		return "", err
-	}
-
-	iUri.Organization = iUri.Join([]string{c.ImagePrefix, iUri.Organization}, "/")
-	iUri.Project = iUri.Join([]string{iUri.Project, c.ImageSuffix}, "/")
-	if c.ImageRepo != "" {
-		iUri.Organization = c.ImageRepo
-		iUri.Project = ""
-	}
-
-	transport, err := GetTransport(c.CaCertPath, c.CertPath, c.KeyPath, c.SkipTlsVerify)
-	if err != nil {
-		return "", fmt.Errorf("failed to GetTransport: %w", err)
-	}
-
-	auth := authn.Anonymous
-	if c.Token != "" {
-		auth = &authn.Bearer{
-			Token: c.Token,
-		}
-	}
-	if c.Username != "" && c.Password != "" {
-		auth = &authn.Basic{
-			Username: c.Username,
-			Password: c.Password,
-		}
-	}
-	if c.DryRun {
-		return iUri.String(), nil
-	}
-
-	if !c.Overwrite {
-		mfs, _ := crane.Manifest(iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
-		if len(mfs) > 0 {
-			cmd.Printf("image %s already exists in the registry\n", iUri.String())
-			return iUri.String(), nil
-		}
 	}
 
 	// Push each layer individually to ensure they are available in the registry
