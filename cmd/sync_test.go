@@ -108,7 +108,7 @@ Skipping image: docker.io/alpine/curl:8.9.2
 		os.Setenv("REGISTRY_PASSWORD", "pass")
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a load-dedup")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a ex4")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.12.0
 Pushing image: localhost:5000/alpine/curl:8.12.0`
@@ -120,7 +120,7 @@ Pushing image: localhost:5000/alpine/curl:8.12.0`
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
 
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a load-dedup")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a ex4")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.12.0
 image localhost:5000/alpine/curl:8.12.0 already exists in the registry`
@@ -132,7 +132,7 @@ image localhost:5000/alpine/curl:8.12.0 already exists in the registry`
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
 
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a load-dedup --overwrite")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a ex4 --overwrite")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.12.0
 Pushing image: localhost:5000/alpine/curl:8.12.0`

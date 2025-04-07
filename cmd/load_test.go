@@ -46,7 +46,7 @@ Tarball created successfully: image-load.tar.zst`
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
 
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --insecure -a ex1")
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --insecure")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
@@ -56,7 +56,7 @@ Successfully pushed image localhost:5000/busybox:1.36.1`
 	t.Run("local-registry-ca", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --ca-cert ../tests/registry/certs/ca.crt -a ex2")
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --ca-cert ../tests/registry/certs/ca.crt --overwrite")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
@@ -64,7 +64,7 @@ Successfully pushed image localhost:5000/busybox:1.36.1`
 	})
 
 	t.Run("prefix-suffix", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r ttl.sh --prefix prefix --suffix suffix -a ex3")
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r ttl.sh --prefix prefix --suffix suffix")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Successfully pushed image ttl.sh/prefix/alpine/suffix/curl:8.9.1
 Successfully pushed image ttl.sh/prefix/suffix/busybox:1.36.1`
@@ -72,18 +72,11 @@ Successfully pushed image ttl.sh/prefix/suffix/busybox:1.36.1`
 	})
 
 	t.Run("duplicated", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 -u admin -p pass --insecure -a ex1")
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 -u admin -p pass --insecure")
 		assert.NoError(t, err)
 		expectedLoadOutput := `image localhost:5000/alpine/curl:8.9.1 already exists in the registry
 Successfully pushed image localhost:5000/alpine/curl:8.9.1
 image localhost:5000/busybox:1.36.1 already exists in the registry
-Successfully pushed image localhost:5000/busybox:1.36.1`
-		assert.Equal(t, expectedLoadOutput, output)
-	})
-	t.Run("overwrite", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 -u admin -p pass --overwrite --insecure -a ex1")
-		assert.NoError(t, err)
-		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
