@@ -75,7 +75,7 @@ $ helm datarobot load images.tgz
 
 		// Step 3: Rebuild and Push Images
 		for _, manifest := range manifests {
-			imageUri, err := rebuildAndPushImage(manifest, loadCfg)
+			imageUri, err := rebuildAndPushImage(manifest, loadCfg, cmd)
 			if err != nil {
 				return fmt.Errorf("Error processing image %s: %v\n", manifest.OriginalImage, err)
 			} else {
@@ -109,6 +109,7 @@ type loadConfig struct {
 	KeyPath       string `env:"KEY_PATH"`
 	OutputDir     string `env:"OUTPUT_DIR"`
 	SkipTlsVerify bool   `env:"SKIP_TLS_VERIFY"`
+	Overwrite     bool   `env:"OVERWRITE"`
 	DryRun        bool   `env:"DRY_RUN"`
 }
 
@@ -128,6 +129,7 @@ func init() {
 	loadCmd.Flags().StringVarP(&loadCfg.CertPath, "cert", "C", "", "Path to the client certificate")
 	loadCmd.Flags().StringVarP(&loadCfg.KeyPath, "key", "K", "", "Path to the client key")
 	loadCmd.Flags().BoolVarP(&loadCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
+	loadCmd.Flags().BoolVarP(&loadCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
 }
 
@@ -212,7 +214,7 @@ func readManifest(manifestPath string) ([]ImageManifest, error) {
 	return manifests, nil
 }
 
-func rebuildAndPushImage(manifest ImageManifest, c loadConfig) (string, error) {
+func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Command) (string, error) {
 	// fmt.Printf("Rebuilding and pushing image: %s...\n", manifest.OriginalImage)
 
 	// Step 1: Load Config File
@@ -297,6 +299,19 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig) (string, error) {
 	}
 	if c.DryRun {
 		return iUri.String(), nil
+	}
+
+	if !c.Overwrite {
+		mfs, err := crane.Manifest(iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
+		if err != nil {
+			if !strings.Contains(err.Error(), "manifest unknown") {
+				return "", fmt.Errorf("error getting Manifest: %v", err)
+			}
+		}
+		if len(mfs) > 0 {
+			cmd.Printf("image %s already exists in the registry\n", iUri.String())
+			return iUri.String(), nil
+		}
 	}
 
 	// Push each layer individually to ensure they are available in the registry

@@ -92,19 +92,10 @@ $ helm datarobot sync tests/charts/test-chart1/
 				continue
 			}
 
-			cmd.Printf("Pulling image: %s\n", srcImage)
-			img, err := crane.Pull(srcImage)
-			if err != nil {
-				return fmt.Errorf("failed to pull image: %w", err)
-			}
-
 			transport, err := GetTransport(syncCfg.CaCertPath, syncCfg.CertPath, syncCfg.KeyPath, syncCfg.SkipTlsVerify)
 			if err != nil {
 				return fmt.Errorf("failed to GetTransport: %w", err)
 			}
-
-			cmd.Printf("Pushing image: %s\n\n", dstImage)
-
 			auth := authn.Anonymous
 			if syncCfg.Token != "" {
 				auth = &authn.Bearer{
@@ -118,6 +109,26 @@ $ helm datarobot sync tests/charts/test-chart1/
 				}
 			}
 
+			if !syncCfg.Overwrite {
+				mfs, err := crane.Manifest(dstImage, crane.WithTransport(transport), crane.WithAuth(auth))
+				if err != nil {
+					if !strings.Contains(err.Error(), "manifest unknown") {
+						return fmt.Errorf("error getting Manifest: %v", err)
+					}
+				}
+				if len(mfs) > 0 {
+					cmd.Printf("image %s already exists in the registry\n", iUri.String())
+					continue
+				}
+			}
+
+			cmd.Printf("Pulling image: %s\n", srcImage)
+			img, err := crane.Pull(srcImage)
+			if err != nil {
+				return fmt.Errorf("failed to pull image: %w", err)
+			}
+
+			cmd.Printf("Pushing image: %s\n\n", dstImage)
 			if err := crane.Push(img, dstImage, crane.WithTransport(transport), crane.WithAuth(auth)); err != nil {
 				return fmt.Errorf("failed to push image with authentication: %w", err)
 			}
@@ -141,6 +152,7 @@ type syncConfig struct {
 	KeyPath        string   `env:"KEY_PATH"`
 	SkipTlsVerify  bool     `env:"SKIP_TLS_VERIFY"`
 	ImageSkipGroup []string `env:"IMAGE_SKIP_GROUP"`
+	Overwrite      bool     `env:"OVERWRITE"`
 	DryRun         bool     `env:"DRY_RUN"`
 }
 
@@ -161,5 +173,6 @@ func init() {
 	syncCmd.Flags().StringVarP(&syncCfg.CertPath, "cert", "C", "", "Path to the client certificate")
 	syncCmd.Flags().StringVarP(&syncCfg.KeyPath, "key", "K", "", "Path to the client key")
 	syncCmd.Flags().BoolVarP(&syncCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
+	syncCmd.Flags().BoolVarP(&syncCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 }
