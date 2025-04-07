@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/logger"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/sethvargo/go-envconfig"
@@ -43,6 +44,12 @@ $ helm datarobot sync tests/charts/test-chart1/
 		if err := envconfig.Process(ctx, &syncCfg); err != nil {
 			return fmt.Errorf("%v", err)
 		}
+		if syncCfg.Debug {
+			logger.SetLevel(logger.DEBUG)
+		}
+		if saveCfg.DryRun {
+			logger.SetPrefix("[Dry-Run]")
+		}
 
 		if syncCfg.RegistryHost == "" {
 			return fmt.Errorf("Registry Host not set")
@@ -75,7 +82,7 @@ $ helm datarobot sync tests/charts/test-chart1/
 				_skipImage := false
 				for _, group := range syncCfg.ImageSkipGroup {
 					if image.Group == group {
-						cmd.Printf("Skipping image: %s\n\n", srcImage)
+						logger.Info("Skipping image: %s\n\n", srcImage)
 						_skipImage = true
 						continue
 					}
@@ -89,7 +96,7 @@ $ helm datarobot sync tests/charts/test-chart1/
 				_skipImage := false
 				for _, imageSkip := range syncCfg.ImageSkip {
 					if srcImage == imageSkip {
-						cmd.Printf("Skipping image: %s\n\n", srcImage)
+						logger.Info("Skipping image: %s\n\n", srcImage)
 						_skipImage = true
 						continue
 					}
@@ -101,8 +108,8 @@ $ helm datarobot sync tests/charts/test-chart1/
 
 			dstImage := iUri.String()
 			if syncCfg.DryRun {
-				cmd.Printf("[Dry-Run] Pulling image: %s\n", srcImage)
-				cmd.Printf("[Dry-Run] Pushing image: %s\n\n", dstImage)
+				logger.Info("Pulling image: %s\n", srcImage)
+				logger.Info("Pushing image: %s\n\n", dstImage)
 				continue
 			}
 
@@ -131,18 +138,18 @@ $ helm datarobot sync tests/charts/test-chart1/
 					}
 				}
 				if len(mfs) > 0 {
-					cmd.Printf("image %s already exists in the registry\n", iUri.String())
+					logger.Info("image %s already exists in the registry", iUri.String())
 					continue
 				}
 			}
 
-			cmd.Printf("Pulling image: %s\n", srcImage)
+			logger.Info("Pulling image: %s", srcImage)
 			img, err := crane.Pull(srcImage)
 			if err != nil {
 				return fmt.Errorf("failed to pull image: %w", err)
 			}
 
-			cmd.Printf("Pushing image: %s\n\n", dstImage)
+			logger.Info("Pushing image: %s\n", dstImage)
 			if err := crane.Push(img, dstImage, crane.WithTransport(transport), crane.WithAuth(auth)); err != nil {
 				return fmt.Errorf("failed to push image with authentication: %w", err)
 			}
@@ -169,6 +176,7 @@ type syncConfig struct {
 	ImageSkip      []string `env:"IMAGE_SKIP"`
 	Overwrite      bool     `env:"OVERWRITE"`
 	DryRun         bool     `env:"DRY_RUN"`
+	Debug          bool     `env:"DEBUG"`
 }
 
 var syncCfg syncConfig
@@ -191,4 +199,5 @@ func init() {
 	syncCmd.Flags().BoolVarP(&syncCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkip, "skip-image", "", []string{}, "Specify which image should be skipped (can be used multiple times)")
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
+	syncCmd.Flags().BoolVarP(&syncCfg.Debug, "debug", "", false, "Enable debug mode")
 }

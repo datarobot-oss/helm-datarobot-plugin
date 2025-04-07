@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"archive/tar"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,9 +11,11 @@ import (
 	"strings"
 
 	"github.com/klauspost/compress/zstd"
+	"github.com/sethvargo/go-envconfig"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/logger"
 	"github.com/google/go-containerregistry/pkg/crane"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/spf13/cobra"
@@ -47,6 +50,17 @@ $ du -h images.tar.zst
 '''`, "'", "`", -1),
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+		if err := envconfig.Process(ctx, &loadCfg); err != nil {
+			return fmt.Errorf("%v", err)
+		}
+		if saveCfg.Debug {
+			logger.SetLevel(logger.DEBUG)
+		}
+
+		if saveCfg.DryRun {
+			logger.SetPrefix("[Dry-Run]")
+		}
 
 		levelMap := map[string]zstd.EncoderLevel{
 			"fastest": zstd.SpeedFastest,
@@ -86,11 +100,7 @@ $ du -h images.tar.zst
 			return fmt.Errorf("Error Tmp Folder: %v\n", err)
 		}
 
-		if saveCfg.DryRun {
-			cmd.Printf("[Dry-Run] Tarball created successfully: %s\n", saveCfg.Output)
-		} else {
-			cmd.Printf("Tarball created successfully: %s\n", saveCfg.Output)
-		}
+		logger.Info("Tarball created successfully: %s", saveCfg.Output)
 
 		return nil
 	},
@@ -102,6 +112,7 @@ type saveConfig struct {
 	CompressionLevel string   `env:"LEVEL"`
 	ImageSkipGroup   []string `env:"IMAGE_SKIP_GROUP"`
 	DryRun           bool     `env:"DRY_RUN"`
+	Debug            bool     `env:"DEBUG"`
 }
 
 var saveCfg saveConfig
@@ -114,6 +125,7 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveCfg.CompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
 	saveCmd.Flags().StringArrayVarP(&saveCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 	saveCmd.Flags().BoolVarP(&saveCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
+	saveCmd.Flags().BoolVarP(&saveCfg.Debug, "debug", "", false, "Enable debug mode")
 }
 
 func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c saveConfig, cmd *cobra.Command) (map[string]string, []ImageManifest) {
@@ -146,37 +158,33 @@ func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c save
 				continue
 			}
 		}
-
+		logger.Info("Pulling image: %s", iUri.String())
 		if c.DryRun {
-			cmd.Printf("[Dry-Run] Pulling image: %s\n", iUri.String())
 			if i.Tag != "" {
 				oldName := iUri.String()
 				iUri.Tag = i.Tag
-				cmd.Printf("[Dry-Run] ReTagging image: %s > %s\n", oldName, iUri.String())
+				logger.Info("ReTagging image: %s > %s", oldName, iUri.String())
 			}
 			continue
 		}
-
-		cmd.Printf("Pulling image: %s\n", iUri.String())
-
 		// Pull the image
 		image, err := crane.Pull(iUri.String())
 		if err != nil {
-			fmt.Printf("Error pulling image %s: %v\n", iUri.String(), err)
+			logger.Error("Error pulling image %s: %v", iUri.String(), err)
 			continue
 		}
 
 		// Retrieve the configuration
 		configFile, err := image.ConfigFile()
 		if err != nil {
-			fmt.Printf("Error retrieving config for image %s: %v\n", iUri.String(), err)
+			logger.Error("Error retrieving config for image %s: %v", iUri.String(), err)
 			continue
 		}
 
 		if i.Tag != "" {
 			oldName := iUri.String()
 			iUri.Tag = i.Tag
-			cmd.Printf("ReTagging image: %s > %s\n", oldName, iUri.String())
+			logger.Info("ReTagging image: %s > %s", oldName, iUri.String())
 		}
 
 		// Save the ConfigFile
@@ -186,7 +194,7 @@ func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c save
 		// Get the layers
 		layers, err := image.Layers()
 		if err != nil {
-			fmt.Printf("Error retrieving layers for image %s: %v\n", iUri.String(), err)
+			logger.Error("Error retrieving layers for image %s: %v", iUri.String(), err)
 			continue
 		}
 
@@ -194,7 +202,7 @@ func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c save
 		for idx, layer := range layers {
 			digest, err := layer.Digest()
 			if err != nil {
-				fmt.Printf("Error getting digest for layer %d of image %s: %v\n", idx+1, iUri.String(), err)
+				logger.Error("Error getting digest for layer %d of image %s: %v", idx+1, iUri.String(), err)
 				continue
 			}
 
@@ -209,7 +217,7 @@ func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c save
 			// Save the layer content
 			layerReader, err := layer.Compressed()
 			if err != nil {
-				fmt.Printf("Error reading layer %d for image %s: %v\n", idx+1, iUri.String(), err)
+				logger.Error("Error reading layer %d for image %s: %v", idx+1, iUri.String(), err)
 				continue
 			}
 			defer layerReader.Close()
@@ -233,7 +241,7 @@ func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c save
 func saveConfigFile(filePath string, configFile *v1.ConfigFile) {
 	file, err := os.Create(filePath)
 	if err != nil {
-		fmt.Printf("Error creating config file %s: %v\n", filePath, err)
+		logger.Error("Error creating config file %s: %v", filePath, err)
 		return
 	}
 	defer file.Close()
@@ -242,14 +250,14 @@ func saveConfigFile(filePath string, configFile *v1.ConfigFile) {
 	encoder.SetIndent("", "  ")
 	err = encoder.Encode(configFile)
 	if err != nil {
-		fmt.Printf("Error writing config file %s: %v\n", filePath, err)
+		logger.Error("Error writing config file %s: %v", filePath, err)
 	}
 }
 
 func saveLayerToFile(reader io.Reader, filePath string) {
 	file, err := os.Create(filePath)
 	if err != nil {
-		fmt.Printf("Error creating file %s: %v\n", filePath, err)
+		logger.Error("Error creating file %s: %v", filePath, err)
 		return
 	}
 	defer file.Close()
@@ -258,7 +266,7 @@ func saveLayerToFile(reader io.Reader, filePath string) {
 }
 
 func saveManifest(filePath string, manifests []ImageManifest) error {
-	// fmt.Printf("Saving manifest to %s...\n", filePath)
+	logger.Debug("Saving manifest to %s", filePath)
 
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -272,13 +280,11 @@ func saveManifest(filePath string, manifests []ImageManifest) error {
 	if err != nil {
 		return fmt.Errorf("error writing manifest: %v", err)
 	}
-
-	// fmt.Println("Manifest successfully saved.")
 	return nil
 }
 
 func createTarball(outputTarball string, inputDir string, level zstd.EncoderLevel) error {
-	// fmt.Printf("Creating tarball %s...\n", outputTarball)
+	logger.Debug("Creating tarball %s", outputTarball)
 
 	// Create the tar.gz file
 	tarFile, err := os.Create(outputTarball)

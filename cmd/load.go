@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/logger"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -56,6 +57,14 @@ $ helm datarobot load images.tgz
 			return fmt.Errorf("%v", err)
 		}
 
+		if loadCfg.Debug {
+			logger.SetLevel(logger.DEBUG)
+		}
+
+		if loadCfg.DryRun {
+			logger.SetPrefix("[Dry-Run]")
+		}
+
 		tarballPath := args[0]
 		// Step 1: Extract Tarball
 		err := extractTarball(tarballPath, loadCfg.OutputDir)
@@ -79,7 +88,7 @@ $ helm datarobot load images.tgz
 				_skipImage := false
 				for _, imageSkip := range loadCfg.ImageSkip {
 					if manifest.ImageName == imageSkip {
-						cmd.Printf("Skipping image: %s\n", manifest.ImageName)
+						logger.Info("Skipping image: %s\n", manifest.ImageName)
 						_skipImage = true
 						break
 					}
@@ -92,12 +101,7 @@ $ helm datarobot load images.tgz
 			if err != nil {
 				return fmt.Errorf("Error processing image %s: %v\n", manifest.OriginalImage, err)
 			} else {
-				if loadCfg.DryRun {
-					cmd.Printf("[Dry-Run] Pushing image: %s\n", imageUri)
-				} else {
-					cmd.Printf("Successfully pushed image %s\n", imageUri)
-				}
-
+				logger.Info("[Dry-Run] Successfully pushed image: %s\n", imageUri)
 			}
 		}
 
@@ -125,6 +129,7 @@ type loadConfig struct {
 	SkipTlsVerify bool     `env:"SKIP_TLS_VERIFY"`
 	Overwrite     bool     `env:"OVERWRITE"`
 	DryRun        bool     `env:"DRY_RUN"`
+	Debug         bool     `env:"DEBUG"`
 }
 
 var loadCfg loadConfig
@@ -146,10 +151,11 @@ func init() {
 	loadCmd.Flags().BoolVarP(&loadCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
 	loadCmd.Flags().StringArrayVarP(&loadCfg.ImageSkip, "skip-image", "", []string{}, "Specify which image should be skipped (can be used multiple times)")
+	loadCmd.Flags().BoolVarP(&loadCfg.Debug, "debug", "", false, "Enable debug mode")
 }
 
 func extractTarball(tarballPath, outputDir string) error {
-	// fmt.Printf("Extracting tarball %s to %s...\n", tarballPath, outputDir)
+	logger.Debug("Extracting tarball %s to %s...\n", tarballPath, outputDir)
 
 	// Open the tarball
 	file, err := os.Open(tarballPath)
