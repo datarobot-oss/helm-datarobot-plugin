@@ -78,7 +78,7 @@ $ helm datarobot load images.tgz
 
 			if len(loadCfg.ImageSkip) > 0 {
 				for _, skip := range loadCfg.ImageSkip {
-					if strings.Contains(manifest.ImageName, skip) {
+					if manifest.ImageName == skip {
 						cmd.Printf("Skipping image: %s\n", manifest.ImageName)
 						continue
 					}
