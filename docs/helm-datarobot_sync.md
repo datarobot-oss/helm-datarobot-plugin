@@ -40,6 +40,7 @@ helm-datarobot sync [flags]
   -h, --help                     help for sync
   -i, --insecure                 Skip server certificate verification
   -K, --key string               Path to the client key
+      --overwrite                Overwrite existing images
   -p, --password string          pass to auth
       --prefix string            append prefix on repo name
   -r, --registry string          registry to auth

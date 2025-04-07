@@ -40,6 +40,7 @@ helm-datarobot load [flags]
   -i, --insecure            Skip server certificate verification
   -K, --key string          Path to the client key
       --output-dir string   file to save (default "export")
+      --overwrite           Overwrite existing images
   -p, --password string     pass to auth
       --prefix string       append prefix on repo name
   -r, --registry string     registry to auth
