@@ -48,7 +48,7 @@ $ helm datarobot sync tests/charts/test-chart1/
 			logger.SetLevel(logger.DEBUG)
 		}
 		if saveCfg.DryRun {
-			logger.SetPrefix("[Dry-Run]")
+			logger.SetPrefix("[Dry-Run] ")
 		}
 
 		if syncCfg.RegistryHost == "" {

@@ -93,9 +93,9 @@ func log(level LogLevel, format string, args ...interface{}) {
 
 	message := fmt.Sprintf(format, args...)
 
-	logMessage := fmt.Sprintf("[%s]%s %s\n", levelStr, instance.prefix, message)
+	logMessage := fmt.Sprintf("[%s]%s%s\n", levelStr, instance.prefix, message)
 	if !instance.showLevel {
-		logMessage = fmt.Sprintf("%s %s\n", instance.prefix, message)
+		logMessage = fmt.Sprintf("%s%s\n", instance.prefix, message)
 	}
 
 	if instance.output != nil {

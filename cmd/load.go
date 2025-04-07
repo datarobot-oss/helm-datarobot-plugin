@@ -62,7 +62,7 @@ $ helm datarobot load images.tgz
 		}
 
 		if loadCfg.DryRun {
-			logger.SetPrefix("[Dry-Run]")
+			logger.SetPrefix("[Dry-Run] ")
 		}
 
 		tarballPath := args[0]

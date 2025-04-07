@@ -59,7 +59,7 @@ $ du -h images.tar.zst
 		}
 
 		if saveCfg.DryRun {
-			logger.SetPrefix("[Dry-Run]")
+			logger.SetPrefix("[Dry-Run] ")
 		}
 
 		levelMap := map[string]zstd.EncoderLevel{
