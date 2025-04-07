@@ -302,11 +302,15 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 	}
 
 	if !c.Overwrite {
-		_, err := crane.Manifest(iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
+		mfs, err := crane.Manifest(iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
 		if err != nil {
+			return "", fmt.Errorf("error getting Manifest: %v", err)
+		}
+		if len(mfs) == 0 {
 			cmd.Printf("image %s already exists in the registry\n", iUri.String())
 			return iUri.String(), nil
 		}
+
 	}
 
 	// Push each layer individually to ensure they are available in the registry

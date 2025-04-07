@@ -110,8 +110,11 @@ $ helm datarobot sync tests/charts/test-chart1/
 			}
 
 			if !syncCfg.Overwrite {
-				_, err := crane.Manifest(dstImage, crane.WithTransport(transport), crane.WithAuth(auth))
+				mfs, err := crane.Manifest(dstImage, crane.WithTransport(transport), crane.WithAuth(auth))
 				if err != nil {
+					return fmt.Errorf("error getting Manifest: %v", err)
+				}
+				if len(mfs) == 0 {
 					cmd.Printf("image %s already exists in the registry\n", iUri.String())
 					continue
 				}
