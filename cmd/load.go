@@ -85,6 +85,7 @@ $ helm datarobot load images.tgz
 		// Step 3: Rebuild and Push Images
 		for _, manifest := range manifests {
 			if len(loadCfg.ImageSkip) > 0 {
+				logger.Debug("Checking if image %s should be skipped", manifest.ImageName)
 				_skipImage := false
 				for _, imageSkip := range loadCfg.ImageSkip {
 					if manifest.ImageName == imageSkip {
@@ -101,7 +102,7 @@ $ helm datarobot load images.tgz
 			if err != nil {
 				return fmt.Errorf("Error processing image %s: %v\n", manifest.OriginalImage, err)
 			} else {
-				logger.Info("[Dry-Run] Successfully pushed image: %s\n", imageUri)
+				logger.Info("Successfully pushed image: %s\n", imageUri)
 			}
 		}
 
@@ -155,7 +156,7 @@ func init() {
 }
 
 func extractTarball(tarballPath, outputDir string) error {
-	logger.Debug("Extracting tarball %s to %s...\n", tarballPath, outputDir)
+	logger.Debug("Extracting tarball %s to %s", tarballPath, outputDir)
 
 	// Open the tarball
 	file, err := os.Open(tarballPath)
@@ -301,11 +302,14 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 		iUri.Project = ""
 	}
 
+	if c.DryRun {
+		return iUri.String(), nil
+	}
+
 	transport, err := GetTransport(c.CaCertPath, c.CertPath, c.KeyPath, c.SkipTlsVerify)
 	if err != nil {
 		return "", fmt.Errorf("failed to GetTransport: %w", err)
 	}
-
 	auth := authn.Anonymous
 	if c.Token != "" {
 		auth = &authn.Bearer{
@@ -318,10 +322,6 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 			Password: c.Password,
 		}
 	}
-	if c.DryRun {
-		return iUri.String(), nil
-	}
-
 	if !c.Overwrite {
 		mfs, err := crane.Manifest(iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
 		if err != nil {
@@ -373,7 +373,7 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 }
 
 func loadConfigFile(configPath string) (*v1.ConfigFile, error) {
-	// fmt.Printf("Loading config file %s...\n", configPath)
+	logger.Debug("Loading config file %s", configPath)
 
 	file, err := os.Open(configPath)
 	if err != nil {
