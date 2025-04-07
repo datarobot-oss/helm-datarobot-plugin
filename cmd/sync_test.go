@@ -108,10 +108,10 @@ Skipping image: docker.io/alpine/curl:8.9.2
 		os.Setenv("REGISTRY_PASSWORD", "pass")
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a datarobot.com/images")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a load-dedup")
 		assert.NoError(t, err)
-		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.9.1
-Pushing image: localhost:5000/alpine/curl:8.9.1`
+		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.12.0
+Pushing image: localhost:5000/alpine/curl:8.12.0`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
 	t.Run("duplicated", func(t *testing.T) {
@@ -120,10 +120,10 @@ Pushing image: localhost:5000/alpine/curl:8.9.1`
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
 
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a datarobot.com/images")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a load-dedup")
 		assert.NoError(t, err)
-		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.9.1
-image localhost:5000/alpine/curl:8.9.1 already exists in the registry`
+		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.12.0
+image localhost:5000/alpine/curl:8.12.0 already exists in the registry`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
 	t.Run("overwrite", func(t *testing.T) {
@@ -132,10 +132,10 @@ image localhost:5000/alpine/curl:8.9.1 already exists in the registry`
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
 
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a datarobot.com/images --overwrite")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a load-dedup --overwrite")
 		assert.NoError(t, err)
-		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.9.1
-Pushing image: localhost:5000/alpine/curl:8.9.1`
+		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.12.0
+Pushing image: localhost:5000/alpine/curl:8.12.0`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
 }

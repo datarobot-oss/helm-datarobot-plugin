@@ -17,6 +17,9 @@ annotations:
   datarobot.com/images: |
     - name: curl
       image: docker.io/alpine/curl:8.9.1
+  load-dedup: |
+    - name: curl
+      image: docker.io/alpine/curl:8.12.0
   bitnami: |
     - name: redis
       image: docker.io/bitnami/redis:7.4.2-debian-12-r0
