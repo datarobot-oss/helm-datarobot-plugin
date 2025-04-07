@@ -36,6 +36,7 @@ helm-datarobot sync [flags]
   -a, --annotation string        annotation to lookup (default "datarobot.com/images")
   -c, --ca-cert string           Path to the custom CA certificate
   -C, --cert string              Path to the client certificate
+      --debug                    Enable debug mode
       --dry-run                  Perform a dry run without making changes
   -h, --help                     help for sync
   -i, --insecure                 Skip server certificate verification

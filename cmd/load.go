@@ -217,7 +217,7 @@ func extractTarball(tarballPath, outputDir string) error {
 }
 
 func readManifest(manifestPath string) ([]ImageManifest, error) {
-	// fmt.Printf("Reading manifest from %s...\n", manifestPath)
+	logger.Debug("Reading manifest from %s", manifestPath)
 
 	file, err := os.Open(manifestPath)
 	if err != nil {
@@ -236,7 +236,7 @@ func readManifest(manifestPath string) ([]ImageManifest, error) {
 }
 
 func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Command) (string, error) {
-	// fmt.Printf("Rebuilding and pushing image: %s...\n", manifest.OriginalImage)
+	logger.Debug("Rebuilding and pushing image: %s", manifest.OriginalImage)
 
 	// Step 1: Load Config File
 	configPath := filepath.Join(c.OutputDir, manifest.ConfigFile)
@@ -330,7 +330,7 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 			}
 		}
 		if len(mfs) > 0 {
-			cmd.Printf("image %s already exists in the registry\n", iUri.String())
+			logger.Info("image %s already exists in the registry", iUri.String())
 			return iUri.String(), nil
 		}
 	}

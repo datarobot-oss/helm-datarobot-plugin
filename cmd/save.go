@@ -149,7 +149,7 @@ func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c save
 			_skipImage := false
 			for _, group := range saveCfg.ImageSkipGroup {
 				if i.Group == group {
-					cmd.Printf("Skipping image: %s\n\n", iUri.String())
+					logger.Info("Skipping image: %s\n", iUri.String())
 					_skipImage = true
 					continue
 				}

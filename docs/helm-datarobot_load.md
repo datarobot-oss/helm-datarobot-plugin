@@ -35,6 +35,7 @@ helm-datarobot load [flags]
 ```
   -c, --ca-cert string           Path to the custom CA certificate
   -C, --cert string              Path to the client certificate
+      --debug                    Enable debug mode
       --dry-run                  Perform a dry run without making changes
   -h, --help                     help for load
   -i, --insecure                 Skip server certificate verification
