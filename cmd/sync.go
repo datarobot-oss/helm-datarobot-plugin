@@ -85,6 +85,20 @@ $ helm datarobot sync tests/charts/test-chart1/
 				}
 			}
 
+			if len(syncCfg.ImageSkip) > 0 {
+				_skipImage := false
+				for _, imageSkip := range syncCfg.ImageSkip {
+					if srcImage == imageSkip {
+						cmd.Printf("Skipping image: %s\n\n", srcImage)
+						_skipImage = true
+						continue
+					}
+				}
+				if _skipImage {
+					continue
+				}
+			}
+
 			dstImage := iUri.String()
 			if syncCfg.DryRun {
 				cmd.Printf("[Dry-Run] Pulling image: %s\n", srcImage)
@@ -152,6 +166,7 @@ type syncConfig struct {
 	KeyPath        string   `env:"KEY_PATH"`
 	SkipTlsVerify  bool     `env:"SKIP_TLS_VERIFY"`
 	ImageSkipGroup []string `env:"IMAGE_SKIP_GROUP"`
+	ImageSkip      []string `env:"IMAGE_SKIP"`
 	Overwrite      bool     `env:"OVERWRITE"`
 	DryRun         bool     `env:"DRY_RUN"`
 }
@@ -174,5 +189,6 @@ func init() {
 	syncCmd.Flags().StringVarP(&syncCfg.KeyPath, "key", "K", "", "Path to the client key")
 	syncCmd.Flags().BoolVarP(&syncCfg.SkipTlsVerify, "insecure", "i", false, "Skip server certificate verification")
 	syncCmd.Flags().BoolVarP(&syncCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
+	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkip, "skip-image", "", []string{}, "Specify which image should be skipped (can be used multiple times)")
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 }
