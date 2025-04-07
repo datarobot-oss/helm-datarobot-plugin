@@ -75,13 +75,17 @@ $ helm datarobot load images.tgz
 
 		// Step 3: Rebuild and Push Images
 		for _, manifest := range manifests {
-
 			if len(loadCfg.ImageSkip) > 0 {
-				for _, skip := range loadCfg.ImageSkip {
-					if manifest.ImageName == skip {
+				_skipImage := false
+				for _, imageSkip := range loadCfg.ImageSkip {
+					if manifest.ImageName == imageSkip {
 						cmd.Printf("Skipping image: %s\n", manifest.ImageName)
-						continue
+						_skipImage = true
+						break
 					}
+				}
+				if _skipImage {
+					continue
 				}
 			}
 			imageUri, err := rebuildAndPushImage(manifest, loadCfg, cmd)
