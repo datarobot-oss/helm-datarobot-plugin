@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/logger"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -56,6 +57,14 @@ $ helm datarobot load images.tgz
 			return fmt.Errorf("%v", err)
 		}
 
+		if loadCfg.Debug {
+			logger.SetLevel(logger.DEBUG)
+		}
+
+		if loadCfg.DryRun {
+			logger.SetPrefix("[Dry-Run] ")
+		}
+
 		tarballPath := args[0]
 		// Step 1: Extract Tarball
 		err := extractTarball(tarballPath, loadCfg.OutputDir)
@@ -76,10 +85,11 @@ $ helm datarobot load images.tgz
 		// Step 3: Rebuild and Push Images
 		for _, manifest := range manifests {
 			if len(loadCfg.ImageSkip) > 0 {
+				logger.Debug("Checking if image %s should be skipped", manifest.ImageName)
 				_skipImage := false
 				for _, imageSkip := range loadCfg.ImageSkip {
 					if manifest.ImageName == imageSkip {
-						cmd.Printf("Skipping image: %s\n", manifest.ImageName)
+						logger.Info("Skipping image: %s\n", manifest.ImageName)
 						_skipImage = true
 						break
 					}
@@ -92,12 +102,7 @@ $ helm datarobot load images.tgz
 			if err != nil {
 				return fmt.Errorf("Error processing image %s: %v\n", manifest.OriginalImage, err)
 			} else {
-				if loadCfg.DryRun {
-					cmd.Printf("[Dry-Run] Pushing image: %s\n", imageUri)
-				} else {
-					cmd.Printf("Successfully pushed image %s\n", imageUri)
-				}
-
+				logger.Info("Successfully pushed image: %s\n", imageUri)
 			}
 		}
 
@@ -125,6 +130,7 @@ type loadConfig struct {
 	SkipTlsVerify bool     `env:"SKIP_TLS_VERIFY"`
 	Overwrite     bool     `env:"OVERWRITE"`
 	DryRun        bool     `env:"DRY_RUN"`
+	Debug         bool     `env:"DEBUG"`
 }
 
 var loadCfg loadConfig
@@ -146,10 +152,11 @@ func init() {
 	loadCmd.Flags().BoolVarP(&loadCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
 	loadCmd.Flags().StringArrayVarP(&loadCfg.ImageSkip, "skip-image", "", []string{}, "Specify which image should be skipped (can be used multiple times)")
+	loadCmd.Flags().BoolVarP(&loadCfg.Debug, "debug", "", false, "Enable debug mode")
 }
 
 func extractTarball(tarballPath, outputDir string) error {
-	// fmt.Printf("Extracting tarball %s to %s...\n", tarballPath, outputDir)
+	logger.Debug("Extracting tarball %s to %s", tarballPath, outputDir)
 
 	// Open the tarball
 	file, err := os.Open(tarballPath)
@@ -211,7 +218,7 @@ func extractTarball(tarballPath, outputDir string) error {
 }
 
 func readManifest(manifestPath string) ([]ImageManifest, error) {
-	// fmt.Printf("Reading manifest from %s...\n", manifestPath)
+	logger.Debug("Reading manifest from %s", manifestPath)
 
 	file, err := os.Open(manifestPath)
 	if err != nil {
@@ -230,7 +237,7 @@ func readManifest(manifestPath string) ([]ImageManifest, error) {
 }
 
 func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Command) (string, error) {
-	// fmt.Printf("Rebuilding and pushing image: %s...\n", manifest.OriginalImage)
+	logger.Debug("Rebuilding and pushing image: %s", manifest.OriginalImage)
 
 	targetRef := fmt.Sprintf("%s/%s", c.RegistryHost, manifest.ImageName)
 	iUri, err := image_uri.NewDockerUri(targetRef)
@@ -269,7 +276,7 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 	if !c.Overwrite {
 		mfs, _ := crane.Manifest(iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
 		if len(mfs) > 0 {
-			cmd.Printf("image %s already exists in the registry\n", iUri.String())
+			logger.Info("image %s already exists in the registry", iUri.String())
 			return iUri.String(), nil
 		}
 	}
@@ -361,7 +368,7 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 }
 
 func loadConfigFile(configPath string) (*v1.ConfigFile, error) {
-	// fmt.Printf("Loading config file %s...\n", configPath)
+	logger.Debug("Loading config file %s", configPath)
 
 	file, err := os.Open(configPath)
 	if err != nil {

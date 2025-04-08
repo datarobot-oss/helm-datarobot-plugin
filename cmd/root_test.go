@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/logger"
 	"github.com/mattn/go-shellwords"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -17,6 +18,8 @@ func executeCommand(root *cobra.Command, cmd string) (output string, err error) 
 		return "", err
 	}
 	resetSubCommandFlagValues(root) // See: https://github.com/spf13/cobra/issues/1488
+	logger.SetOutput(buf)
+	logger.HideLevel()
 	root.SetOut(buf)
 	root.SetErr(buf)
 	root.SetArgs(args)
