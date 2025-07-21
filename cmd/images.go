@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -46,7 +47,7 @@ image: docker.io/datarobotdev/test-image3:3.0.0
 '''`, "'", "`", -1),
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		allImages, err := ExtractImagesFromCharts(args)
+		allImages, err := chartutil.ExtractImagesFromCharts(args, annotation)
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/render_helper"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,7 @@ $ helm datarobot validate chart.tgz
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}
 
-		imageDoc, err := ExtractImagesFromCharts(args)
+		imageDoc, err := chartutil.ExtractImagesFromCharts(args, annotation)
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}

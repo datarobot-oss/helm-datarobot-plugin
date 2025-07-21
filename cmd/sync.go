@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -48,7 +49,7 @@ $ helm datarobot sync tests/charts/test-chart1/
 			return fmt.Errorf("Registry Host not set")
 		}
 
-		images, err := ExtractImagesFromCharts(args)
+		images, err := chartutil.ExtractImagesFromCharts(args, annotation)
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
