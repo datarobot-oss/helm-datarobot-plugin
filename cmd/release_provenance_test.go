@@ -14,8 +14,8 @@ func TestCommandReleaseProvenance(t *testing.T) {
   {
     "image": "docker.io/alpine/curl:8.9.1",
     "repo": "",
-    "commit": "",
-  },
+    "commit": ""
+  }
 ]`
 		assert.Equal(t, expectedOutput, output)
 	})
@@ -28,8 +28,7 @@ Usage:
   helm-datarobot release-provenance [flags]
 
 Flags:
-  -h, --help   help for release-provenance
-`
+  -h, --help   help for release-provenance`
 		assert.Equal(t, expectedOutput, output)
 	})
 }
