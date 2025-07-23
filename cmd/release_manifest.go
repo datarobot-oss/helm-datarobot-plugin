@@ -2,18 +2,15 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
-
-	"gopkg.in/yaml.v2"
-	"helm.sh/helm/v3/pkg/chart/loader"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 const ARCHIVE_EXT = ".tar.zst"
@@ -137,36 +134,8 @@ func deduplicate(images []chartutil.DatarobotImageDeclaration) []chartutil.Datar
 	return result
 }
 
-func ExtractImagesFromCharts(args []string) ([]chartutil.DatarobotImageDeclaration, error) {
-	allChartImages := make([]chartutil.ChartImages, 0)
-	for _, chartPath := range args {
-		c, err := loader.Load(chartPath)
-		if err != nil {
-			return nil, fmt.Errorf("Error loading chart %s: %v", chartPath, err)
-		}
-		allChartImages = append(
-			allChartImages,
-			chartutil.RecursiveRenderDatarobotImages(c, annotation)...,
-		)
-	}
-	allImages := make([]chartutil.DatarobotImageDeclaration, 0)
-	allErrors := make([]string, 0)
-
-	for _, ci := range allChartImages {
-		if ci.Err != nil {
-			formattedError := fmt.Sprintf("[%s] %s", ci.ChartFullPath, ci.Err.Error())
-			allErrors = append(allErrors, formattedError)
-		}
-		allImages = append(allImages, ci.Images...)
-	}
-	if len(allErrors) > 0 {
-		return nil, errors.New(strings.Join(allErrors, "\n"))
-	}
-	return allImages, nil
-}
-
 func generateReleaseManifest(args []string) (map[string]releaseManifestImage, error) {
-	allImages, err := ExtractImagesFromCharts(args)
+	allImages, err := chartutil.ExtractImagesFromCharts(args, annotation)
 	if err != nil {
 		return nil, fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 	}

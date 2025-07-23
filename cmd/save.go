@@ -60,7 +60,7 @@ $ du -h images.tar.zst
 			return fmt.Errorf("Invalid compression level. Available options: fastest, default, better, best")
 		}
 
-		images, err := ExtractImagesFromCharts(args)
+		images, err := chartutil.ExtractImagesFromCharts(args, annotation)
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}

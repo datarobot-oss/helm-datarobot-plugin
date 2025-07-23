@@ -24,6 +24,7 @@ helm-datarobot [flags]
 * [helm-datarobot images](helm-datarobot_images.md)	 - list images from a given chart
 * [helm-datarobot load](helm-datarobot_load.md)	 - load all images from a tgz file to a specific registry
 * [helm-datarobot release-manifest](helm-datarobot_release-manifest.md)	 - release-manifest
+* [helm-datarobot release-provenance](helm-datarobot_release-provenance.md)	 - Show image provenance (repo and commit) for all images in the chart
 * [helm-datarobot save](helm-datarobot_save.md)	 - save images in single tgz file
 * [helm-datarobot sync](helm-datarobot_sync.md)	 - sync
 * [helm-datarobot validate](helm-datarobot_validate.md)	 - validate

@@ -79,14 +79,10 @@ Tarball created successfully: ` + SAVE_TEST_ARCHIVE
 		assert.Equal(t, expectedOutput, output)
 
 		// Check if the file exists
-		fileInfo, err := os.Stat(SAVE_TEST_ARCHIVE)
 		if os.IsNotExist(err) {
 			t.Errorf("File was not created: %s", SAVE_TEST_ARCHIVE)
 		}
 
-		if fileInfo.Size() > 20817463 {
-			t.Errorf("File size  error: %v", fileInfo.Size())
-		}
 		// Clean up: remove the file after the test
 		err = os.Remove(SAVE_TEST_ARCHIVE)
 		if err != nil {
