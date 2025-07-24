@@ -56,8 +56,7 @@ image: docker.io/datarobotdev/test-image3:3.0.0
 			return fmt.Errorf("Error writing yaml: %v", err)
 		}
 
-		stdout := cmd.OutOrStdout()
-		stdout.Write(yamlData)
+		cmd.Print(string(yamlData))
 		return nil
 	},
 }

@@ -186,8 +186,7 @@ images:
 			return fmt.Errorf("Error writing yaml: %v", err)
 		}
 
-		stdout := cmd.OutOrStdout()
-		stdout.Write(yamlData)
+		cmd.Print(string(yamlData))
 		return nil
 	},
 }
