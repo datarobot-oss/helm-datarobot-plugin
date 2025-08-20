@@ -126,8 +126,8 @@ type loadConfig struct {
 	SkipTlsVerify bool     `env:"SKIP_TLS_VERIFY"`
 	Overwrite     bool     `env:"OVERWRITE"`
 	DryRun        bool     `env:"DRY_RUN"`
-	RetryCount    int      `env:"RETRY_COUNT,default=1"` // number of retries for pushing images
-	RetryDelay    int      `env:"RETRY_DELAY,default=5"` // in seconds, delay between retries
+	RetryAttempts int      `env:"RETRY_ATTEMPTS,default=2"` // number of retries for pushing images
+	RetryDelay    int      `env:"RETRY_DELAY,default=5"`    // in seconds, delay between retries
 }
 
 var loadCfg loadConfig
@@ -149,7 +149,7 @@ func init() {
 	loadCmd.Flags().BoolVarP(&loadCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	loadCmd.Flags().BoolVarP(&loadCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
 	loadCmd.Flags().StringArrayVarP(&loadCfg.ImageSkip, "skip-image", "", []string{}, "Specify which image should be skipped (can be used multiple times)")
-	loadCmd.Flags().IntVarP(&loadCfg.RetryCount, "retry-count", "", 1, "Number of retries for pushing images")
+	loadCmd.Flags().IntVarP(&loadCfg.RetryAttempts, "retry-attempts", "", 2, "Number of retries for pushing images")
 	loadCmd.Flags().IntVarP(&loadCfg.RetryDelay, "retry-delay", "", 5, "Delay between retries in seconds")
 }
 
@@ -356,12 +356,12 @@ func rebuildAndPushImage(manifest ImageManifest, c loadConfig, cmd *cobra.Comman
 		}
 	}
 
-	for i := range syncCfg.RetryCount {
+	for i := range c.RetryAttempts {
 		err = crane.Push(image, iUri.String(), crane.WithTransport(transport), crane.WithAuth(auth))
 		if err == nil {
 			return iUri.String(), nil // Successfully pushed the image
 		}
-		cmd.Printf("Failed to push image: %s. Attempt %d/%d. Error: %v", image, i+1, c.RetryCount, err)
+		cmd.Printf("Failed to push image: %s. Attempt %d/%d. Error: %v", image, i+1, c.RetryAttempts, err)
 		time.Sleep(time.Duration(c.RetryDelay) * time.Second) // Wait before retrying
 	}
 	return "", fmt.Errorf("error pushing image: %v", err)
