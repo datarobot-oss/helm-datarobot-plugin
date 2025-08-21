@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
 	"github.com/datarobot-oss/helm-datarobot-plugin/pkg/image_uri"
@@ -139,10 +140,19 @@ $ helm datarobot sync tests/charts/test-chart1/
 			}
 
 			cmd.Printf("Pushing image: %s\n\n", dstImage)
-			if err := crane.Push(img, dstImage, crane.WithTransport(transport), crane.WithAuth(auth)); err != nil {
+			pushStatus := false
+			for i := range syncCfg.RetryAttempts + 1 {
+				err = crane.Push(img, dstImage, crane.WithTransport(transport), crane.WithAuth(auth))
+				if err == nil {
+					pushStatus = true
+					break
+				}
+				cmd.Printf("Failed to push image: %s. Attempt %d/%d. Error: %v", image, i+1, syncCfg.RetryAttempts, err)
+				time.Sleep(time.Duration(syncCfg.RetryDelay) * time.Second) // Wait before retrying
+			}
+			if !pushStatus {
 				return fmt.Errorf("failed to push image with authentication: %w", err)
 			}
-
 		}
 		return nil
 	},
@@ -165,6 +175,8 @@ type syncConfig struct {
 	ImageSkip      []string `env:"IMAGE_SKIP"`
 	Overwrite      bool     `env:"OVERWRITE"`
 	DryRun         bool     `env:"DRY_RUN"`
+	RetryAttempts  int      `env:"RETRY_ATTEMPTS,default=1"` // number of retries for pushing images
+	RetryDelay     int      `env:"RETRY_DELAY,default=5"`    // in seconds, delay between retries
 }
 
 var syncCfg syncConfig
@@ -187,4 +199,6 @@ func init() {
 	syncCmd.Flags().BoolVarP(&syncCfg.Overwrite, "overwrite", "", false, "Overwrite existing images")
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkip, "skip-image", "", []string{}, "Specify which image should be skipped (can be used multiple times)")
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
+	syncCmd.Flags().IntVarP(&syncCfg.RetryAttempts, "retry-attempts", "", 1, "Number of retries for pushing images")
+	syncCmd.Flags().IntVarP(&syncCfg.RetryDelay, "retry-delay", "", 5, "Delay between retries in seconds")
 }

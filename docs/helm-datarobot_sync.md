@@ -45,6 +45,8 @@ helm-datarobot sync [flags]
       --prefix string            append prefix on repo name
   -r, --registry string          registry to auth
       --repo string              rewrite the target repository name
+      --retry-attempts int       Number of retries for pushing images (default 1)
+      --retry-delay int          Delay between retries in seconds (default 5)
       --skip-group stringArray   Specify which image group should be skipped (can be used multiple times)
       --skip-image stringArray   Specify which image should be skipped (can be used multiple times)
       --suffix string            append suffix on repo name
