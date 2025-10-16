@@ -8,11 +8,21 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 )
+
+// UpgradeAnnotation represents a structured upgrade annotation
+type UpgradeAnnotation struct {
+	Source      string `yaml:"source"`
+	Target      string `yaml:"target"`
+	Action      string `yaml:"action"`
+	Condition   string `yaml:"condition,omitempty"`
+	Description string `yaml:"description"`
+}
 
 var upgradeCmd = &cobra.Command{
 	Use:          "upgrade [RELEASE] [CHART]",
@@ -30,11 +40,14 @@ The command checks:
 Example:
 '''sh
 $ helm datarobot upgrade dr tests/charts/test-chart1/ -n default
-Chart test-chart1 can be upgraded from version 0.1.0 to 0.2.0
+Release dr can be upgraded from version 0.1.0 to 0.2.0
 
-Upgrade Annotations:
-  upgrade.datarobot.com/breaking-changes: Database schema migration required
-  upgrade.datarobot.com/pre-upgrade-steps: Run backup script before upgrade
+# Database schema migration required
+./scripts/migrate-db.sh
+
+# Run backup before upgrade
+./scripts/backup.sh
+./scripts/verify-backup.sh
 
 $ helm datarobot upgrade dr ./my-chart -n production
 Error: release dr is not installed in namespace production
@@ -129,9 +142,8 @@ func runUpgradeValidation(cmd *cobra.Command, releaseName, chartPath, namespace 
 	}
 
 	// Display upgrade annotations if any exist
-	upgradeAnnotations := extractUpgradeAnnotations(loadedChart)
+	upgradeAnnotations := extractAndParseUpgradeAnnotations(loadedChart)
 	if len(upgradeAnnotations) > 0 {
-		cmd.Printf("\nUpgrade Annotations:\n")
 		// Sort keys for consistent output order
 		var keys []string
 		for key := range upgradeAnnotations {
@@ -139,17 +151,20 @@ func runUpgradeValidation(cmd *cobra.Command, releaseName, chartPath, namespace 
 		}
 		sort.Strings(keys)
 
+		cmd.Printf("\n")
 		for _, key := range keys {
-			cmd.Printf("  %s: %s\n", key, upgradeAnnotations[key])
+			annotation := upgradeAnnotations[key]
+			cmd.Printf("# %s\n", annotation.Description)
+			cmd.Printf("%s\n\n", annotation.Action)
 		}
 	}
 
 	return nil
 }
 
-// extractUpgradeAnnotations extracts all annotations from the chart that have the "upgrade.datarobot.com/" prefix
-func extractUpgradeAnnotations(chart *chart.Chart) map[string]string {
-	upgradeAnnotations := make(map[string]string)
+// extractAndParseUpgradeAnnotations extracts and parses all annotations from the chart that have the "upgrade.datarobot.com/" prefix
+func extractAndParseUpgradeAnnotations(chart *chart.Chart) map[string]UpgradeAnnotation {
+	upgradeAnnotations := make(map[string]UpgradeAnnotation)
 
 	if chart.Metadata == nil || chart.Metadata.Annotations == nil {
 		return upgradeAnnotations
@@ -157,7 +172,21 @@ func extractUpgradeAnnotations(chart *chart.Chart) map[string]string {
 
 	for key, value := range chart.Metadata.Annotations {
 		if strings.HasPrefix(key, "upgrade.datarobot.com/") {
-			upgradeAnnotations[key] = value
+			var annotation UpgradeAnnotation
+			err := yaml.Unmarshal([]byte(value), &annotation)
+			if err != nil {
+				// Skip invalid YAML annotations with warning
+				fmt.Fprintf(os.Stderr, "Warning: failed to parse annotation %s: %v\n", key, err)
+				continue
+			}
+
+			// Validate required fields
+			if annotation.Action == "" || annotation.Description == "" {
+				fmt.Fprintf(os.Stderr, "Warning: annotation %s missing required fields (action or description)\n", key)
+				continue
+			}
+
+			upgradeAnnotations[key] = annotation
 		}
 	}
 

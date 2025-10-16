@@ -236,40 +236,60 @@ func TestUpgradeCommandRejectsRemotePaths(t *testing.T) {
 	}
 }
 
-func TestExtractUpgradeAnnotations(t *testing.T) {
+func TestExtractAndParseUpgradeAnnotations(t *testing.T) {
 	tests := []struct {
 		name        string
 		annotations map[string]string
-		expected    map[string]string
+		expected    map[string]UpgradeAnnotation
 		description string
 	}{
 		{
-			name: "multiple upgrade annotations",
+			name: "valid structured annotations",
 			annotations: map[string]string{
-				"upgrade.datarobot.com/breaking-changes":   "Database schema migration required",
-				"upgrade.datarobot.com/pre-upgrade-steps":  "Run backup script before upgrade",
-				"upgrade.datarobot.com/post-upgrade-tasks": "Verify data integrity",
+				"upgrade.datarobot.com/migration": `source: ">=0.1.0 <0.2.0"
+target: "0.2.0"
+description: Database schema migration required
+action: |
+  ./scripts/migrate-db.sh
+  ./scripts/verify-migration.sh`,
+				"upgrade.datarobot.com/backup": `source: "*"
+target: "2.x"
+description: Run backup before upgrade
+action: |
+  ./scripts/backup.sh
+  ./scripts/verify-backup.sh`,
 			},
-			expected: map[string]string{
-				"upgrade.datarobot.com/breaking-changes":   "Database schema migration required",
-				"upgrade.datarobot.com/pre-upgrade-steps":  "Run backup script before upgrade",
-				"upgrade.datarobot.com/post-upgrade-tasks": "Verify data integrity",
+			expected: map[string]UpgradeAnnotation{
+				"upgrade.datarobot.com/migration": {
+					Source:      ">=0.1.0 <0.2.0",
+					Target:      "0.2.0",
+					Description: "Database schema migration required",
+					Action:      "./scripts/migrate-db.sh\n./scripts/verify-migration.sh",
+				},
+				"upgrade.datarobot.com/backup": {
+					Source:      "*",
+					Target:      "2.x",
+					Description: "Run backup before upgrade",
+					Action:      "./scripts/backup.sh\n./scripts/verify-backup.sh",
+				},
 			},
-			description: "should extract all upgrade annotations",
+			description: "should parse valid structured annotations",
 		},
 		{
 			name: "mixed annotations with upgrade prefix",
 			annotations: map[string]string{
-				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required",
-				"datarobot.com/images":                    "test-image:1.0.0",
-				"upgrade.datarobot.com/pre-upgrade-steps": "Run backup script before upgrade",
-				"other.annotation":                        "some value",
+				"upgrade.datarobot.com/migration": `description: Database migration
+action: ./migrate.sh`,
+				"datarobot.com/images": "test-image:1.0.0",
+				"other.annotation":     "some value",
 			},
-			expected: map[string]string{
-				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required",
-				"upgrade.datarobot.com/pre-upgrade-steps": "Run backup script before upgrade",
+			expected: map[string]UpgradeAnnotation{
+				"upgrade.datarobot.com/migration": {
+					Description: "Database migration",
+					Action:      "./migrate.sh",
+				},
 			},
-			description: "should only extract annotations with upgrade.datarobot.com/ prefix",
+			description: "should only parse annotations with upgrade.datarobot.com/ prefix",
 		},
 		{
 			name: "no upgrade annotations",
@@ -277,32 +297,51 @@ func TestExtractUpgradeAnnotations(t *testing.T) {
 				"datarobot.com/images": "test-image:1.0.0",
 				"other.annotation":     "some value",
 			},
-			expected:    map[string]string{},
+			expected:    map[string]UpgradeAnnotation{},
 			description: "should return empty map when no upgrade annotations exist",
 		},
 		{
 			name:        "empty annotations",
 			annotations: map[string]string{},
-			expected:    map[string]string{},
+			expected:    map[string]UpgradeAnnotation{},
 			description: "should return empty map for empty annotations",
 		},
 		{
 			name:        "nil annotations",
 			annotations: nil,
-			expected:    map[string]string{},
+			expected:    map[string]UpgradeAnnotation{},
 			description: "should return empty map for nil annotations",
 		},
 		{
-			name: "multiline annotation values",
+			name: "invalid YAML annotations",
 			annotations: map[string]string{
-				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required\nRun migration script: migrate.sh\nVerify data integrity",
-				"upgrade.datarobot.com/pre-upgrade-steps": "1. Backup database\n2. Stop services\n3. Run upgrade",
+				"upgrade.datarobot.com/invalid": "invalid: yaml: content: [",
+				"upgrade.datarobot.com/valid": `description: Valid annotation
+action: ./script.sh`,
 			},
-			expected: map[string]string{
-				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required\nRun migration script: migrate.sh\nVerify data integrity",
-				"upgrade.datarobot.com/pre-upgrade-steps": "1. Backup database\n2. Stop services\n3. Run upgrade",
+			expected: map[string]UpgradeAnnotation{
+				"upgrade.datarobot.com/valid": {
+					Description: "Valid annotation",
+					Action:      "./script.sh",
+				},
 			},
-			description: "should preserve multiline values in annotations",
+			description: "should skip invalid YAML annotations",
+		},
+		{
+			name: "missing required fields",
+			annotations: map[string]string{
+				"upgrade.datarobot.com/no-action":      `description: No action field`,
+				"upgrade.datarobot.com/no-description": `action: ./script.sh`,
+				"upgrade.datarobot.com/valid": `description: Valid annotation
+action: ./script.sh`,
+			},
+			expected: map[string]UpgradeAnnotation{
+				"upgrade.datarobot.com/valid": {
+					Description: "Valid annotation",
+					Action:      "./script.sh",
+				},
+			},
+			description: "should skip annotations missing required fields",
 		},
 	}
 
@@ -315,7 +354,7 @@ func TestExtractUpgradeAnnotations(t *testing.T) {
 				},
 			}
 
-			result := extractUpgradeAnnotations(testChart)
+			result := extractAndParseUpgradeAnnotations(testChart)
 
 			assert.Equal(t, tt.expected, result, tt.description)
 		})
@@ -328,60 +367,8 @@ func TestExtractUpgradeAnnotationsWithNilMetadata(t *testing.T) {
 		Metadata: nil,
 	}
 
-	result := extractUpgradeAnnotations(testChart)
+	result := extractAndParseUpgradeAnnotations(testChart)
 	assert.Empty(t, result, "should return empty map when metadata is nil")
-}
-
-func TestExtractUpgradeAnnotationsEdgeCases(t *testing.T) {
-	tests := []struct {
-		name        string
-		annotations map[string]string
-		expected    map[string]string
-		description string
-	}{
-		{
-			name: "prefix as exact match",
-			annotations: map[string]string{
-				"upgrade.datarobot.com/": "exact prefix match",
-			},
-			expected: map[string]string{
-				"upgrade.datarobot.com/": "exact prefix match",
-			},
-			description: "should match exact prefix",
-		},
-		{
-			name: "similar but different prefix",
-			annotations: map[string]string{
-				"upgrade.datarobot.com":         "missing slash",
-				"upgrade.datarobot.org/":        "different domain",
-				"upgrade.datarobot.com.backup/": "different suffix",
-			},
-			expected:    map[string]string{},
-			description: "should not match similar but different prefixes",
-		},
-		{
-			name: "case sensitivity",
-			annotations: map[string]string{
-				"UPGRADE.DATAROBOT.COM/": "uppercase",
-				"Upgrade.Datarobot.Com/": "mixed case",
-			},
-			expected:    map[string]string{},
-			description: "should be case sensitive",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testChart := &chart.Chart{
-				Metadata: &chart.Metadata{
-					Annotations: tt.annotations,
-				},
-			}
-
-			result := extractUpgradeAnnotations(testChart)
-			assert.Equal(t, tt.expected, result, tt.description)
-		})
-	}
 }
 
 func TestVersionComparisonEdgeCases(t *testing.T) {

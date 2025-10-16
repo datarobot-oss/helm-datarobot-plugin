@@ -11,17 +11,18 @@ annotations:
     - name: test-image
       image: docker.io/datarobotdev/test-image:{{.Chart.AppVersion}}
   
-  upgrade.datarobot.com/breaking-changes: |
-    Database schema migration required
-    Run migration script: migrate.sh
-    Verify data integrity after migration
+  upgrade.datarobot.com/pre-migration: |
+    source: ">=0.1.0 <0.2.0"
+    target: "0.2.0"
+    description: Database schema migration required
+    action: |
+      ./scripts/migrate-db.sh
+      ./scripts/verify-migration.sh
   
-  upgrade.datarobot.com/pre-upgrade-steps: |
-    1. Backup database
-    2. Stop services
-    3. Run upgrade
-  
-  upgrade.datarobot.com/post-upgrade-tasks: |
-    Verify all services are running
-    Check application logs for errors
-    Run smoke tests
+  upgrade.datarobot.com/backup: |
+    source: "*"
+    target: "2.x"
+    description: Run backup before upgrade
+    action: |
+      ./scripts/backup.sh
+      ./scripts/verify-backup.sh
