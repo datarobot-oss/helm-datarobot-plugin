@@ -11,18 +11,24 @@ annotations:
     - name: test-image
       image: docker.io/datarobotdev/test-image:{{.Chart.AppVersion}}
   
-  upgrade.datarobot.com/pre-migration: |
-    source: ">=0.1.0 <0.2.0"
+  upgrade.datarobot.com/always-run: |
+    source: ""
+    target: ""
+    description: This runs for all upgrades
+    action: echo "Always executed"
+  
+  upgrade.datarobot.com/specific-upgrade: |
+    source: "0.1.x"
     target: "0.2.0"
-    description: Database schema migration required
+    description: Runs when upgrading from 0.1.x to 0.2.0
     action: |
-      ./scripts/migrate-db.sh
+      ./scripts/migrate.sh
       ./scripts/verify-migration.sh
   
-  upgrade.datarobot.com/backup: |
-    source: "*"
+  upgrade.datarobot.com/to-v2: |
+    source: ""
     target: "2.x"
-    description: Run backup before upgrade
+    description: Runs when upgrading to any 2.x version
     action: |
-      ./scripts/backup.sh
-      ./scripts/verify-backup.sh
+      ./scripts/v2-setup.sh
+      ./scripts/verify-v2.sh

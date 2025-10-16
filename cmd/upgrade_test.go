@@ -371,6 +371,137 @@ func TestExtractUpgradeAnnotationsWithNilMetadata(t *testing.T) {
 	assert.Empty(t, result, "should return empty map when metadata is nil")
 }
 
+func TestMatchesVersionConstraint(t *testing.T) {
+	tests := []struct {
+		name       string
+		version    string
+		constraint string
+		expected   bool
+		shouldErr  bool
+	}{
+		// Exact matches
+		{"exact match", "1.2.3", "1.2.3", true, false},
+		{"exact no match", "1.2.3", "1.2.4", false, false},
+
+		// Range constraints
+		{"range matches lower", "0.1.5", ">=0.1.0 <0.2.0", true, false},
+		{"range matches upper", "0.1.9", ">=0.1.0 <0.2.0", true, false},
+		{"range too low", "0.0.9", ">=0.1.0 <0.2.0", false, false},
+		{"range too high", "0.2.0", ">=0.1.0 <0.2.0", false, false},
+		{"tilde constraint", "1.2.5", "~1.2.0", true, false},
+		{"caret constraint", "1.5.0", "^1.2.0", true, false},
+
+		// Wildcard matches
+		{"wildcard major", "2.1.3", "2.x", true, false},
+		{"wildcard minor", "2.1.5", "2.1.x", true, false},
+		{"wildcard all", "3.5.2", "*", true, false},
+		{"wildcard no match major", "1.2.3", "2.x", false, false},
+
+		// Empty constraint
+		{"empty constraint", "1.2.3", "", true, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := matchesVersionConstraint(tt.version, tt.constraint)
+			if tt.shouldErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestShouldDisplayAnnotation(t *testing.T) {
+	tests := []struct {
+		name             string
+		annotation       UpgradeAnnotation
+		installedVersion string
+		newVersion       string
+		expected         bool
+	}{
+		{
+			name: "both empty - always display",
+			annotation: UpgradeAnnotation{
+				Source: "",
+				Target: "",
+			},
+			installedVersion: "1.0.0",
+			newVersion:       "2.0.0",
+			expected:         true,
+		},
+		{
+			name: "source empty - check target only",
+			annotation: UpgradeAnnotation{
+				Source: "",
+				Target: "2.x",
+			},
+			installedVersion: "1.0.0",
+			newVersion:       "2.1.0",
+			expected:         true,
+		},
+		{
+			name: "target empty - check source only",
+			annotation: UpgradeAnnotation{
+				Source: ">=1.0.0 <2.0.0",
+				Target: "",
+			},
+			installedVersion: "1.5.0",
+			newVersion:       "3.0.0",
+			expected:         true,
+		},
+		{
+			name: "both match - display",
+			annotation: UpgradeAnnotation{
+				Source: ">=0.1.0 <0.2.0",
+				Target: "0.2.0",
+			},
+			installedVersion: "0.1.5",
+			newVersion:       "0.2.0",
+			expected:         true,
+		},
+		{
+			name: "source no match - hide",
+			annotation: UpgradeAnnotation{
+				Source: ">=0.1.0 <0.2.0",
+				Target: "0.2.0",
+			},
+			installedVersion: "0.3.0",
+			newVersion:       "0.2.0",
+			expected:         false,
+		},
+		{
+			name: "target no match - hide",
+			annotation: UpgradeAnnotation{
+				Source: ">=0.1.0 <0.2.0",
+				Target: "0.2.x",
+			},
+			installedVersion: "0.1.5",
+			newVersion:       "0.3.0",
+			expected:         false,
+		},
+		{
+			name: "wildcard source and target both match",
+			annotation: UpgradeAnnotation{
+				Source: "1.x",
+				Target: "2.x",
+			},
+			installedVersion: "1.5.0",
+			newVersion:       "2.3.0",
+			expected:         true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := shouldDisplayAnnotation(tt.annotation, tt.installedVersion, tt.newVersion)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestVersionComparisonEdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string

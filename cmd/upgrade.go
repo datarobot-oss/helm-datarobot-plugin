@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -139,23 +140,32 @@ func runUpgradeValidation(cmd *cobra.Command, releaseName, chartPath, namespace 
 		cmd.Printf("Release %s is already at version %s in namespace %s\n", releaseName, newVersionStr, namespace)
 	} else {
 		cmd.Printf("Release %s can be upgraded from version %s to %s in namespace %s\n", releaseName, oldVersionStr, newVersionStr, namespace)
-	}
 
-	// Display upgrade annotations if any exist
-	upgradeAnnotations := extractAndParseUpgradeAnnotations(loadedChart)
-	if len(upgradeAnnotations) > 0 {
-		// Sort keys for consistent output order
-		var keys []string
-		for key := range upgradeAnnotations {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
+		// Display upgrade annotations if any exist
+		upgradeAnnotations := extractAndParseUpgradeAnnotations(loadedChart)
+		if len(upgradeAnnotations) > 0 {
+			// Sort keys for consistent output order
+			var keys []string
+			for key := range upgradeAnnotations {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
 
-		cmd.Printf("\n")
-		for _, key := range keys {
-			annotation := upgradeAnnotations[key]
-			cmd.Printf("# %s\n", annotation.Description)
-			cmd.Printf("%s\n\n", annotation.Action)
+			// Filter and display matching annotations
+			hasDisplayed := false
+			for _, key := range keys {
+				annotation := upgradeAnnotations[key]
+
+				// Check if annotation should be displayed based on version matching
+				if shouldDisplayAnnotation(annotation, oldVersionStr, newVersionStr) {
+					if !hasDisplayed {
+						cmd.Printf("\n")
+						hasDisplayed = true
+					}
+					cmd.Printf("# %s\n", annotation.Description)
+					cmd.Printf("%s\n\n", annotation.Action)
+				}
+			}
 		}
 	}
 
@@ -191,6 +201,94 @@ func extractAndParseUpgradeAnnotations(chart *chart.Chart) map[string]UpgradeAnn
 	}
 
 	return upgradeAnnotations
+}
+
+// matchesVersionConstraint checks if a version matches a constraint (exact, range, or wildcard)
+func matchesVersionConstraint(version, constraint string) (bool, error) {
+	// Empty constraint matches any version
+	if constraint == "" {
+		return true, nil
+	}
+
+	// Try wildcard matching first (contains x or *)
+	if strings.Contains(constraint, "x") || strings.Contains(constraint, "*") {
+		return matchesWildcardVersion(version, constraint), nil
+	}
+
+	// Try as semver constraint (range like ">=1.0.0 <2.0.0")
+	if strings.ContainsAny(constraint, "><~^") {
+		return matchesSemverConstraint(version, constraint)
+	}
+
+	// Exact version match
+	v1, err := semver.NewVersion(version)
+	if err != nil {
+		return false, err
+	}
+	v2, err := semver.NewVersion(constraint)
+	if err != nil {
+		return false, err
+	}
+	return v1.Equal(v2), nil
+}
+
+// matchesWildcardVersion checks if version matches wildcard pattern
+func matchesWildcardVersion(version, pattern string) bool {
+	if pattern == "*" {
+		return true
+	}
+
+	// Replace x with * for consistency
+	pattern = strings.ReplaceAll(pattern, "x", "*")
+
+	// Build regex: escape dots, replace * with \d+(\.\d+)*
+	escapedPattern := regexp.QuoteMeta(pattern)
+	escapedPattern = strings.ReplaceAll(escapedPattern, "\\*", "\\d+(\\.\\d+)*")
+
+	regexPattern := "^" + escapedPattern + "$"
+	matched, _ := regexp.MatchString(regexPattern, version)
+	return matched
+}
+
+// matchesSemverConstraint checks if version matches semver constraint
+func matchesSemverConstraint(version, constraint string) (bool, error) {
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return false, err
+	}
+
+	c, err := semver.NewConstraint(constraint)
+	if err != nil {
+		return false, err
+	}
+
+	return c.Check(v), nil
+}
+
+// shouldDisplayAnnotation determines if annotation should be displayed based on version matching
+func shouldDisplayAnnotation(annotation UpgradeAnnotation, installedVersion, newVersion string) bool {
+	// Both empty → always display
+	if annotation.Source == "" && annotation.Target == "" {
+		return true
+	}
+
+	// Check source (installed version)
+	if annotation.Source != "" {
+		matches, err := matchesVersionConstraint(installedVersion, annotation.Source)
+		if err != nil || !matches {
+			return false
+		}
+	}
+
+	// Check target (new version)
+	if annotation.Target != "" {
+		matches, err := matchesVersionConstraint(newVersion, annotation.Target)
+		if err != nil || !matches {
+			return false
+		}
+	}
+
+	return true
 }
 
 func init() {
