@@ -176,7 +176,7 @@ func TestUpgradeCommandFlags(t *testing.T) {
 
 func TestUpgradeCommandUsage(t *testing.T) {
 	// Verify command basic properties
-	assert.Equal(t, "upgrade [CHART]", upgradeCmd.Use)
+	assert.Equal(t, "upgrade [RELEASE] [CHART]", upgradeCmd.Use)
 	assert.True(t, upgradeCmd.SilenceUsage)
 	assert.NotEmpty(t, upgradeCmd.Short)
 	assert.NotEmpty(t, upgradeCmd.Long)

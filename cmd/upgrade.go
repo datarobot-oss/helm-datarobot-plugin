@@ -12,37 +12,37 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
 )
 
 var upgradeCmd = &cobra.Command{
-	Use:          "upgrade [CHART]",
+	Use:          "upgrade [RELEASE] [CHART]",
 	Short:        "validate chart upgrade compatibility",
 	SilenceUsage: true,
 	Long: strings.Replace(`
 This command validates whether a chart upgrade is possible by comparing 
-the version of the supplied chart against the currently deployed chart 
+the version of the supplied chart against the currently deployed release 
 in the Kubernetes namespace.
 
 The command checks:
-- If the chart is currently installed in the namespace
+- If the release is currently installed in the namespace
 - If the new version is greater than or equal to the old version
 
 Example:
 '''sh
-$ helm datarobot upgrade tests/charts/test-chart1/ -n default
+$ helm datarobot upgrade dr tests/charts/test-chart1/ -n default
 Chart test-chart1 can be upgraded from version 0.1.0 to 0.2.0
 
 Upgrade Annotations:
   upgrade.datarobot.com/breaking-changes: Database schema migration required
   upgrade.datarobot.com/pre-upgrade-steps: Run backup script before upgrade
 
-$ helm datarobot upgrade ./my-chart -n production
-Error: chart my-chart is not installed in namespace production
+$ helm datarobot upgrade dr ./my-chart -n production
+Error: release dr is not installed in namespace production
 '''`, "'", "`", -1),
-	Args: cobra.ExactArgs(1),
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		chartPath := args[0]
+		releaseName := args[0]
+		chartPath := args[1]
 
 		// Get namespace from flag
 		namespace, err := cmd.Flags().GetString("namespace")
@@ -55,11 +55,11 @@ Error: chart my-chart is not installed in namespace production
 			namespace = "default"
 		}
 
-		return runUpgradeValidation(cmd, chartPath, namespace)
+		return runUpgradeValidation(cmd, releaseName, chartPath, namespace)
 	},
 }
 
-func runUpgradeValidation(cmd *cobra.Command, chartPath, namespace string) error {
+func runUpgradeValidation(cmd *cobra.Command, releaseName, chartPath, namespace string) error {
 	// Validate that the chart path is a local directory or file
 	if strings.HasPrefix(chartPath, "oci://") || strings.HasPrefix(chartPath, "http://") || strings.HasPrefix(chartPath, "https://") {
 		return fmt.Errorf("only local chart paths are supported, got: %s", chartPath)
@@ -91,29 +91,21 @@ func runUpgradeValidation(cmd *cobra.Command, chartPath, namespace string) error
 		return fmt.Errorf("error initializing helm action config: %w", err)
 	}
 
-	// List releases in the namespace
-	listClient := action.NewList(actionConfig)
-	listClient.All = true // Include all releases, even failed ones
-
-	releases, err := listClient.Run()
+	// Get the specific release
+	getClient := action.NewGet(actionConfig)
+	currentRelease, err := getClient.Run(releaseName)
 	if err != nil {
-		return fmt.Errorf("error listing releases in namespace %s: %w", namespace, err)
+		return fmt.Errorf("release %s is not installed in namespace %s: %w", releaseName, namespace, err)
 	}
 
-	// Find the release with matching chart name
-	var currentRelease *release.Release
-	for _, rel := range releases {
-		if rel.Chart != nil && rel.Chart.Metadata != nil {
-			if rel.Chart.Metadata.Name == chartName {
-				currentRelease = rel
-				break
-			}
-		}
+	// Verify the release is using the same chart
+	if currentRelease.Chart == nil || currentRelease.Chart.Metadata == nil {
+		return fmt.Errorf("release %s has invalid chart metadata", releaseName)
 	}
 
-	// Check if chart is installed
-	if currentRelease == nil {
-		return fmt.Errorf("chart %s is not installed in namespace %s", chartName, namespace)
+	installedChartName := currentRelease.Chart.Metadata.Name
+	if installedChartName != chartName {
+		return fmt.Errorf("release %s is using chart %s, but trying to upgrade with chart %s", releaseName, installedChartName, chartName)
 	}
 
 	oldVersionStr := currentRelease.Chart.Metadata.Version
@@ -126,14 +118,14 @@ func runUpgradeValidation(cmd *cobra.Command, chartPath, namespace string) error
 
 	// Compare versions
 	if newVersion.LessThan(oldVersion) {
-		return fmt.Errorf("cannot downgrade chart %s from version %s to %s", chartName, oldVersionStr, newVersionStr)
+		return fmt.Errorf("cannot downgrade release %s from version %s to %s", releaseName, oldVersionStr, newVersionStr)
 	}
 
 	// Success case
 	if newVersion.Equal(oldVersion) {
-		cmd.Printf("Chart %s is already at version %s in namespace %s\n", chartName, newVersionStr, namespace)
+		cmd.Printf("Release %s is already at version %s in namespace %s\n", releaseName, newVersionStr, namespace)
 	} else {
-		cmd.Printf("Chart %s can be upgraded from version %s to %s in namespace %s\n", chartName, oldVersionStr, newVersionStr, namespace)
+		cmd.Printf("Release %s can be upgraded from version %s to %s in namespace %s\n", releaseName, oldVersionStr, newVersionStr, namespace)
 	}
 
 	// Display upgrade annotations if any exist
