@@ -117,9 +117,19 @@ func runUpgradeValidation(cmd *cobra.Command, releaseName, chartPath, namespace 
 		return fmt.Errorf("release %s has invalid chart metadata", releaseName)
 	}
 
+	allowedLegacyNames := map[string]struct{}{
+		"datarobot-google":  {},
+		"datarobot-generic": {},
+		"datarobot-azure":   {},
+		"datarobot-aws":     {},
+	}
+
 	installedChartName := currentRelease.Chart.Metadata.Name
+
 	if installedChartName != chartName {
-		return fmt.Errorf("release %s is using chart %s, but trying to upgrade with chart %s", releaseName, installedChartName, chartName)
+		if _, ok := allowedLegacyNames[installedChartName]; !ok {
+			return fmt.Errorf("release %s is using chart %s, but trying to upgrade with chart %s", releaseName, installedChartName, chartName)
+		}
 	}
 
 	oldVersionStr := currentRelease.Chart.Metadata.Version
@@ -252,7 +262,14 @@ func matchesWildcardVersion(version, pattern string) bool {
 
 // matchesSemverConstraint checks if version matches semver constraint
 func matchesSemverConstraint(version, constraint string) (bool, error) {
-	v, err := semver.NewVersion(version)
+	// Try stripping any build or prerelease data after main semver
+	reSemverMain := regexp.MustCompile(`^(\d+\.\d+\.\d+)`)
+	mainPart := version
+	if m := reSemverMain.FindStringSubmatch(version); m != nil {
+		mainPart = m[1]
+	}
+
+	v, err := semver.NewVersion(mainPart)
 	if err != nil {
 		return false, err
 	}
@@ -273,7 +290,7 @@ func shouldDisplayAnnotation(annotation UpgradeAnnotation, installedVersion, new
 	}
 
 	// Check source (installed version)
-	if annotation.Source != "" {
+	if annotation.Target == "" {
 		matches, err := matchesVersionConstraint(installedVersion, annotation.Source)
 		if err != nil || !matches {
 			return false
@@ -281,13 +298,23 @@ func shouldDisplayAnnotation(annotation UpgradeAnnotation, installedVersion, new
 	}
 
 	// Check target (new version)
-	if annotation.Target != "" {
+	if annotation.Source == "" {
 		matches, err := matchesVersionConstraint(newVersion, annotation.Target)
 		if err != nil || !matches {
 			return false
 		}
 	}
 
+	if annotation.Source != "" && annotation.Target != "" {
+		matches, err := matchesVersionConstraint(installedVersion, annotation.Source)
+		if err != nil || !matches {
+			return false
+		}
+		matches, err = matchesVersionConstraint(newVersion, annotation.Target)
+		if err != nil || !matches {
+			return false
+		}
+	}
 	return true
 }
 
