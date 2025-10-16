@@ -1,0 +1,27 @@
+apiVersion: v2
+name: test-upgrade-chart
+description: A test chart with upgrade annotations
+
+type: application
+version: 0.2.0
+appVersion: "2.0.0"
+
+annotations:
+  datarobot.com/images: |
+    - name: test-image
+      image: docker.io/datarobotdev/test-image:{{.Chart.AppVersion}}
+  
+  upgrade.datarobot.com/breaking-changes: |
+    Database schema migration required
+    Run migration script: migrate.sh
+    Verify data integrity after migration
+  
+  upgrade.datarobot.com/pre-upgrade-steps: |
+    1. Backup database
+    2. Stop services
+    3. Run upgrade
+  
+  upgrade.datarobot.com/post-upgrade-tasks: |
+    Verify all services are running
+    Check application logs for errors
+    Run smoke tests

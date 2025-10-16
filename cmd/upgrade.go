@@ -3,11 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
@@ -30,6 +32,10 @@ Example:
 '''sh
 $ helm datarobot upgrade tests/charts/test-chart1/ -n default
 Chart test-chart1 can be upgraded from version 0.1.0 to 0.2.0
+
+Upgrade Annotations:
+  upgrade.datarobot.com/breaking-changes: Database schema migration required
+  upgrade.datarobot.com/pre-upgrade-steps: Run backup script before upgrade
 
 $ helm datarobot upgrade ./my-chart -n production
 Error: chart my-chart is not installed in namespace production
@@ -130,7 +136,40 @@ func runUpgradeValidation(cmd *cobra.Command, chartPath, namespace string) error
 		cmd.Printf("Chart %s can be upgraded from version %s to %s in namespace %s\n", chartName, oldVersionStr, newVersionStr, namespace)
 	}
 
+	// Display upgrade annotations if any exist
+	upgradeAnnotations := extractUpgradeAnnotations(loadedChart)
+	if len(upgradeAnnotations) > 0 {
+		cmd.Printf("\nUpgrade Annotations:\n")
+		// Sort keys for consistent output order
+		var keys []string
+		for key := range upgradeAnnotations {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
+		for _, key := range keys {
+			cmd.Printf("  %s: %s\n", key, upgradeAnnotations[key])
+		}
+	}
+
 	return nil
+}
+
+// extractUpgradeAnnotations extracts all annotations from the chart that have the "upgrade.datarobot.com/" prefix
+func extractUpgradeAnnotations(chart *chart.Chart) map[string]string {
+	upgradeAnnotations := make(map[string]string)
+
+	if chart.Metadata == nil || chart.Metadata.Annotations == nil {
+		return upgradeAnnotations
+	}
+
+	for key, value := range chart.Metadata.Annotations {
+		if strings.HasPrefix(key, "upgrade.datarobot.com/") {
+			upgradeAnnotations[key] = value
+		}
+	}
+
+	return upgradeAnnotations
 }
 
 func init() {

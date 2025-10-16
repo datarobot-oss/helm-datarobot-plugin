@@ -6,6 +6,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/chart"
 )
 
 func TestVersionComparison(t *testing.T) {
@@ -231,6 +232,154 @@ func TestUpgradeCommandRejectsRemotePaths(t *testing.T) {
 			} else {
 				assert.False(t, hasRemotePrefix, "local path should not be detected as remote")
 			}
+		})
+	}
+}
+
+func TestExtractUpgradeAnnotations(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		expected    map[string]string
+		description string
+	}{
+		{
+			name: "multiple upgrade annotations",
+			annotations: map[string]string{
+				"upgrade.datarobot.com/breaking-changes":   "Database schema migration required",
+				"upgrade.datarobot.com/pre-upgrade-steps":  "Run backup script before upgrade",
+				"upgrade.datarobot.com/post-upgrade-tasks": "Verify data integrity",
+			},
+			expected: map[string]string{
+				"upgrade.datarobot.com/breaking-changes":   "Database schema migration required",
+				"upgrade.datarobot.com/pre-upgrade-steps":  "Run backup script before upgrade",
+				"upgrade.datarobot.com/post-upgrade-tasks": "Verify data integrity",
+			},
+			description: "should extract all upgrade annotations",
+		},
+		{
+			name: "mixed annotations with upgrade prefix",
+			annotations: map[string]string{
+				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required",
+				"datarobot.com/images":                    "test-image:1.0.0",
+				"upgrade.datarobot.com/pre-upgrade-steps": "Run backup script before upgrade",
+				"other.annotation":                        "some value",
+			},
+			expected: map[string]string{
+				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required",
+				"upgrade.datarobot.com/pre-upgrade-steps": "Run backup script before upgrade",
+			},
+			description: "should only extract annotations with upgrade.datarobot.com/ prefix",
+		},
+		{
+			name: "no upgrade annotations",
+			annotations: map[string]string{
+				"datarobot.com/images": "test-image:1.0.0",
+				"other.annotation":     "some value",
+			},
+			expected:    map[string]string{},
+			description: "should return empty map when no upgrade annotations exist",
+		},
+		{
+			name:        "empty annotations",
+			annotations: map[string]string{},
+			expected:    map[string]string{},
+			description: "should return empty map for empty annotations",
+		},
+		{
+			name:        "nil annotations",
+			annotations: nil,
+			expected:    map[string]string{},
+			description: "should return empty map for nil annotations",
+		},
+		{
+			name: "multiline annotation values",
+			annotations: map[string]string{
+				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required\nRun migration script: migrate.sh\nVerify data integrity",
+				"upgrade.datarobot.com/pre-upgrade-steps": "1. Backup database\n2. Stop services\n3. Run upgrade",
+			},
+			expected: map[string]string{
+				"upgrade.datarobot.com/breaking-changes":  "Database schema migration required\nRun migration script: migrate.sh\nVerify data integrity",
+				"upgrade.datarobot.com/pre-upgrade-steps": "1. Backup database\n2. Stop services\n3. Run upgrade",
+			},
+			description: "should preserve multiline values in annotations",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a test chart with the specified annotations
+			testChart := &chart.Chart{
+				Metadata: &chart.Metadata{
+					Annotations: tt.annotations,
+				},
+			}
+
+			result := extractUpgradeAnnotations(testChart)
+
+			assert.Equal(t, tt.expected, result, tt.description)
+		})
+	}
+}
+
+func TestExtractUpgradeAnnotationsWithNilMetadata(t *testing.T) {
+	// Test with nil metadata
+	testChart := &chart.Chart{
+		Metadata: nil,
+	}
+
+	result := extractUpgradeAnnotations(testChart)
+	assert.Empty(t, result, "should return empty map when metadata is nil")
+}
+
+func TestExtractUpgradeAnnotationsEdgeCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		expected    map[string]string
+		description string
+	}{
+		{
+			name: "prefix as exact match",
+			annotations: map[string]string{
+				"upgrade.datarobot.com/": "exact prefix match",
+			},
+			expected: map[string]string{
+				"upgrade.datarobot.com/": "exact prefix match",
+			},
+			description: "should match exact prefix",
+		},
+		{
+			name: "similar but different prefix",
+			annotations: map[string]string{
+				"upgrade.datarobot.com":         "missing slash",
+				"upgrade.datarobot.org/":        "different domain",
+				"upgrade.datarobot.com.backup/": "different suffix",
+			},
+			expected:    map[string]string{},
+			description: "should not match similar but different prefixes",
+		},
+		{
+			name: "case sensitivity",
+			annotations: map[string]string{
+				"UPGRADE.DATAROBOT.COM/": "uppercase",
+				"Upgrade.Datarobot.Com/": "mixed case",
+			},
+			expected:    map[string]string{},
+			description: "should be case sensitive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testChart := &chart.Chart{
+				Metadata: &chart.Metadata{
+					Annotations: tt.annotations,
+				},
+			}
+
+			result := extractUpgradeAnnotations(testChart)
+			assert.Equal(t, tt.expected, result, tt.description)
 		})
 	}
 }
