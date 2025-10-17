@@ -147,34 +147,34 @@ func runUpgradeValidation(cmd *cobra.Command, releaseName, chartPath, namespace 
 
 	// Success case
 	if newVersion.Equal(oldVersion) {
-		cmd.Printf("Release %s is already at version %s in namespace %s\n", releaseName, newVersionStr, namespace)
-	} else {
-		cmd.Printf("Release %s can be upgraded from version %s to %s in namespace %s\n", releaseName, oldVersionStr, newVersionStr, namespace)
+		return fmt.Errorf("# Release %s is already at version %s in namespace %s\n", releaseName, newVersionStr, namespace)
+	}
 
-		// Display upgrade annotations if any exist
-		upgradeAnnotations := extractAndParseUpgradeAnnotations(loadedChart)
-		if len(upgradeAnnotations) > 0 {
-			// Sort keys for consistent output order
-			var keys []string
-			for key := range upgradeAnnotations {
-				keys = append(keys, key)
-			}
-			sort.Strings(keys)
+	cmd.Printf("# Release %s can be upgraded from version %s to %s in namespace %s\n", releaseName, oldVersionStr, newVersionStr, namespace)
 
-			// Filter and display matching annotations
-			hasDisplayed := false
-			for _, key := range keys {
-				annotation := upgradeAnnotations[key]
+	// Display upgrade annotations if any exist
+	upgradeAnnotations := extractAndParseUpgradeAnnotations(loadedChart)
+	if len(upgradeAnnotations) > 0 {
+		// Sort keys for consistent output order
+		var keys []string
+		for key := range upgradeAnnotations {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
 
-				// Check if annotation should be displayed based on version matching
-				if shouldDisplayAnnotation(annotation, oldVersionStr, newVersionStr) {
-					if !hasDisplayed {
-						cmd.Printf("\n")
-						hasDisplayed = true
-					}
-					cmd.Printf("# %s\n", annotation.Description)
-					cmd.Printf("%s\n\n", annotation.Action)
+		// Filter and display matching annotations
+		hasDisplayed := false
+		for _, key := range keys {
+			annotation := upgradeAnnotations[key]
+
+			// Check if annotation should be displayed based on version matching
+			if shouldDisplayAnnotation(annotation, oldVersionStr, newVersionStr) {
+				if !hasDisplayed {
+					cmd.Printf("\n")
+					hasDisplayed = true
 				}
+				cmd.Printf("# %s\n", annotation.Description)
+				cmd.Printf("%s\n\n", annotation.Action)
 			}
 		}
 	}
