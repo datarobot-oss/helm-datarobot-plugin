@@ -63,8 +63,8 @@ $ helm-datarobot release-provenance datarobot-prime-11.0.0.tgz
 			}
 			results = append(results, ProvenanceInfo{
 				Image:  img.Image,
-				Repo:   labels["com.datarobot.repo-name"],
-				Commit: labels["com.datarobot.repo-sha"],
+				Repo:   preprocessRepo(labels["com.datarobot.repo-name"]),
+				Commit: preprocessCommit(labels["com.datarobot.repo-sha"]),
 			})
 		}
 		enc := json.NewEncoder(cmd.OutOrStdout())
@@ -75,4 +75,16 @@ $ helm-datarobot release-provenance datarobot-prime-11.0.0.tgz
 
 func init() {
 	rootCmd.AddCommand(releaseProvenanceCmd)
+}
+
+func preprocessRepo(repo string) string {
+	return strings.TrimSuffix(repo, ".git")
+}
+
+func preprocessCommit(commit string) string {
+	lines := strings.Split(commit, "\n")
+	if len(lines) == 0 {
+		return ""
+	}
+	return strings.Trim(strings.TrimSpace(lines[0]), "-")
 }
