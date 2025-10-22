@@ -38,9 +38,9 @@ annotations:
   load-dedup: |
     - name: curl
       image: docker.io/alpine/curl:8.12.0
-  bitnami: |
+  bitnamilegacy: |
     - name: redis
-      image: docker.io/bitnami/redis:7.4.2-debian-12-r0
+      image: docker.io/bitnamilegacy/redis:7.4.2-debian-12-r0
   image/groups: |
     - name: curl10
       image: docker.io/alpine/curl:8.9.10
