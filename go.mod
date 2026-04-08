@@ -1,6 +1,6 @@
 module github.com/datarobot-oss/helm-datarobot-plugin
 
-go 1.25.0
+go 1.26.2
 
 require (
 	github.com/google/go-containerregistry v0.20.3
