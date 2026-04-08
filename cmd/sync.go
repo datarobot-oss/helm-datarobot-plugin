@@ -55,6 +55,26 @@ $ helm datarobot sync tests/charts/test-chart1/
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
 
+		if upgradeFrom != "" {
+			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
+			for _, img := range images {
+				if img.UpgradeVersion == "" || strings.Contains(img.UpgradeVersion, upgradeFrom) {
+					filteredImages = append(filteredImages, img)
+				}
+			}
+			images = filteredImages
+		}
+
+		if noUpgrade {
+			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
+			for _, img := range images {
+				if img.Group != "upgrade" {
+					filteredImages = append(filteredImages, img)
+				}
+			}
+			images = filteredImages
+		}
+
 		for _, image := range images {
 			iUri, err := image_uri.NewDockerUri(image.Image)
 			if err != nil {
@@ -201,4 +221,6 @@ func init() {
 	syncCmd.Flags().StringArrayVarP(&syncCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 	syncCmd.Flags().IntVarP(&syncCfg.RetryAttempts, "retry-attempts", "", 1, "Number of retries for pushing images")
 	syncCmd.Flags().IntVarP(&syncCfg.RetryDelay, "retry-delay", "", 5, "Delay between retries in seconds")
+	syncCmd.Flags().StringVar(&upgradeFrom, "upgrade-from", "", "version to upgrade from")
+	syncCmd.Flags().BoolVar(&noUpgrade, "no-upgrade", false, "Skip all images with the upgrade notation")
 }
