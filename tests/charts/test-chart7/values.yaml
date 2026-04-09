@@ -105,5 +105,3 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
-
-STASSTASSTAS: true
