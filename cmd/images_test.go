@@ -36,7 +36,7 @@ func TestCommandImages(t *testing.T) {
 	t.Run("no-upgrade", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "image ../tests/charts/test-chart7 -a datarobot.com/images --no-upgrade")
 		assert.NoError(t, err)
-		assert.NotContains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
+		assert.NotContains(t, output, "docker.io/alpine/curl:8.10.0")
 	})
 
 }
