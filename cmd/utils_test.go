@@ -94,3 +94,24 @@ E4bmYvhnmO/hlPwDN02OSWHYm6m0yIzWXw==
 		t.Fatal("Expected InsecureSkipVerify to be true")
 	}
 }
+
+func TestIsUpgradeVersionSupported(t *testing.T) {
+	tests := []struct {
+		versions      string
+		targetVersion string
+		expected      bool
+	}{
+		{"9.0,9.1,9.2,10.0", "0.0", false},
+		{"9.0,9.1,9.2,10.0", "9", false},
+		{"9.0,9.1,9.2,10.0", "9.0", true},
+		{"", "any", true},
+		{"9.0,9.1", "9.1", true},
+	}
+
+	for _, tt := range tests {
+		result := IsUpgradeVersionSupported(tt.versions, tt.targetVersion)
+		if result != tt.expected {
+			t.Errorf("IsUpgradeVersionSupported(%q, %q) = %v; want %v", tt.versions, tt.targetVersion, result, tt.expected)
+		}
+	}
+}

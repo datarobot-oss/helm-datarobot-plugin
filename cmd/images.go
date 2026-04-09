@@ -55,7 +55,7 @@ image: docker.io/datarobotdev/test-image3:3.0.0
 		if upgradeFrom != "" {
 			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
 			for _, img := range allImages {
-				if img.UpgradeVersion == "" || strings.Contains(img.UpgradeVersion, upgradeFrom) {
+				if img.UpgradeVersion == "" || IsUpgradeVersionSupported(img.UpgradeVersion, upgradeFrom) {
 					filteredImages = append(filteredImages, img)
 				}
 			}

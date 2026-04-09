@@ -44,8 +44,10 @@ helm-datarobot images [flags]
 ### Options
 
 ```
-  -a, --annotation string   annotation to lookup (default "datarobot.com/images")
-  -h, --help                help for images
+  -a, --annotation string     annotation to lookup (default "datarobot.com/images")
+  -h, --help                  help for images
+      --no-upgrade            skip all images with the upgrade notation
+      --upgrade-from string   version to upgrade from
 ```
 
 ### SEE ALSO

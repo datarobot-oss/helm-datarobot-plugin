@@ -68,7 +68,7 @@ $ du -h images.tar.zst
 		if upgradeFrom != "" {
 			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
 			for _, img := range images {
-				if img.UpgradeVersion == "" || strings.Contains(img.UpgradeVersion, upgradeFrom) {
+				if img.UpgradeVersion == "" || IsUpgradeVersionSupported(img.UpgradeVersion, upgradeFrom) {
 					filteredImages = append(filteredImages, img)
 				}
 			}
