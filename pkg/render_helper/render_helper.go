@@ -2,6 +2,7 @@ package render_helper
 
 import (
 	"fmt"
+	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -13,20 +14,22 @@ import (
 
 // RenderOptions controls how a chart is rendered. If nil is passed to RenderChart, defaultOptions() is used.
 type RenderOptions struct {
-	Namespace   string
-	ReleaseName string
-	KubeVersion string
-	IncludeCRDs bool
-	APIVersions []string
+	Namespace    string
+	ReleaseName  string
+	KubeVersion  string
+	IncludeCRDs  bool
+	APIVersions  []string
+	IncludeHooks bool // when true, hook manifests are appended to the returned output
 }
 
 func defaultOptions() *RenderOptions {
 	return &RenderOptions{
-		Namespace:   "test",
-		ReleaseName: "test-release",
-		KubeVersion: "v1.27.0",
-		IncludeCRDs: false,
-		APIVersions: nil,
+		Namespace:    "test",
+		ReleaseName:  "test-release",
+		KubeVersion:  "v1.27.0",
+		IncludeCRDs:  false,
+		APIVersions:  nil,
+		IncludeHooks: false,
 	}
 }
 
@@ -41,7 +44,7 @@ func RenderChart(chartPath string, valueFiles []string, Values []string, opts *R
 	client.ReleaseName = opts.ReleaseName
 	client.IncludeCRDs = opts.IncludeCRDs
 	client.Namespace = opts.Namespace
-	client.DisableHooks = true
+	client.DisableHooks = !opts.IncludeHooks
 
 	parsedKubeVersion, err := chartutil.ParseKubeVersion(opts.KubeVersion)
 	if err != nil {
@@ -76,5 +79,19 @@ func RenderChart(chartPath string, valueFiles []string, Values []string, opts *R
 		return "", fmt.Errorf("could not render helm chart correctly: %w", err)
 	}
 
-	return rel.Manifest, nil
+	out := rel.Manifest
+
+	if opts.IncludeHooks && rel.Hooks != nil {
+		var hookParts []string
+		for _, h := range rel.Hooks {
+			if strings.TrimSpace(h.Manifest) != "" {
+				hookParts = append(hookParts, h.Manifest)
+			}
+		}
+		if len(hookParts) > 0 {
+			out = out + "\n---\n" + strings.Join(hookParts, "\n---\n")
+		}
+	}
+
+	return out, nil
 }

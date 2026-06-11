@@ -19,31 +19,34 @@ Extract all cluster-scoped resources (CRDs, ClusterRoles, ClusterRoleBindings,
 Webhooks, etc.) from a DataRobot Helm chart and package them as a standalone
 installable Helm chart.
 
+Use --extra-admin-kinds to force additional kinds (e.g. Role, RoleBinding,
+ServiceAccount) into the admin chart for PNC-style restricted RBAC environments
+where cluster-admin install handles those privileged resources.
+
 Example:
 '''sh
 $ helm datarobot admin-chart ./datarobot-prime-11.10.88.tgz \
     --namespace dr \
     --values my-values.yaml \
-    --output ./datarobot-admin-11.10.88.tgz
+    --keep-crds=true \
+    --extra-admin-kinds Role,RoleBinding,ServiceAccount
 '''`, "'", "`", -1),
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
 
-		if acInput.Namespace == "" {
-			return fmt.Errorf("--namespace is required")
-		}
-
-		if acInput.Output == "" {
-			return fmt.Errorf("--output is required")
+		namespace := acInput.Namespace
+		if namespace == "" {
+			namespace = "default"
 		}
 
 		renderOpts := &render_helper.RenderOptions{
-			Namespace:   acInput.Namespace,
-			ReleaseName: acInput.ReleaseName,
-			KubeVersion: acInput.KubeVersion,
-			IncludeCRDs: true,
-			APIVersions: acInput.APIVersions,
+			Namespace:    namespace,
+			ReleaseName:  acInput.ReleaseName,
+			KubeVersion:  acInput.KubeVersion,
+			IncludeCRDs:  true,
+			APIVersions:  acInput.APIVersions,
+			IncludeHooks: true,
 		}
 
 		if acInput.OpenShift {
@@ -53,7 +56,16 @@ $ helm datarobot admin-chart ./datarobot-prime-11.10.88.tgz \
 			)
 		}
 
-		rendered, err := render_helper.RenderChart(chartPath, acInput.ValueFiles, acInput.Values, renderOpts)
+		var setValues []string
+		if f := cmd.Flags().Lookup("set"); f != nil && f.Changed {
+			var ferr error
+			setValues, ferr = cmd.Flags().GetStringArray("set")
+			if ferr != nil {
+				setValues = nil
+			}
+		}
+
+		rendered, err := render_helper.RenderChart(chartPath, acInput.ValueFiles, setValues, renderOpts)
 		if err != nil {
 			return fmt.Errorf("failed to render chart: %w", err)
 		}
@@ -63,9 +75,13 @@ $ helm datarobot admin-chart ./datarobot-prime-11.10.88.tgz \
 			return fmt.Errorf("failed to parse manifests: %w", err)
 		}
 
-		clusterScoped, _ := manifest.FilterClusterScoped(resources)
+		result := manifest.Classify(resources, acInput.ExtraAdminKinds)
 
-		if len(clusterScoped) == 0 {
+		for _, w := range result.Warnings {
+			cmd.PrintErrln("warning: " + w)
+		}
+
+		if len(result.Admin) == 0 {
 			return fmt.Errorf("no cluster-scoped resources found in rendered output")
 		}
 
@@ -74,28 +90,35 @@ $ helm datarobot admin-chart ./datarobot-prime-11.10.88.tgz \
 			return fmt.Errorf("failed to read source chart metadata: %w", err)
 		}
 
+		outputPath := acInput.Output
+		if outputPath == "" {
+			outputPath = fmt.Sprintf("./datarobot-admin-%s.tgz", sourceMeta.Version)
+		}
+
 		chartOpts := adminchart.ChartOptions{
 			Name:       "datarobot-admin",
 			Version:    sourceMeta.Version,
 			AppVersion: sourceMeta.AppVersion,
+			SourceName: sourceMeta.Name,
+			KeepCRDs:   acInput.KeepCRDs,
 		}
 
-		adminChart, err := adminchart.BuildChart(clusterScoped, chartOpts)
+		adminChart, err := adminchart.BuildChart(result.Admin, chartOpts)
 		if err != nil {
 			return fmt.Errorf("failed to build admin chart: %w", err)
 		}
 
-		if err := adminchart.PackageChart(adminChart, acInput.Output); err != nil {
+		if err := adminchart.PackageChart(adminChart, outputPath); err != nil {
 			return fmt.Errorf("failed to package chart: %w", err)
 		}
 
-		summary := manifest.Summary(clusterScoped)
-		cmd.Printf("Extracted %d cluster-scoped resources: %s\n", len(clusterScoped), summary)
-		cmd.Printf("Admin chart written to: %s\n", acInput.Output)
+		summary := manifest.Summary(result.Admin)
+		cmd.Printf("Extracted %d cluster-scoped resources (skipped %d namespaced): %s\n", len(result.Admin), len(result.App), summary)
+		cmd.Printf("Admin chart written to: %s\n", outputPath)
 
 		if acInput.Debug {
 			cmd.Println("\nResources:")
-			for _, r := range clusterScoped {
+			for _, r := range result.Admin {
 				cmd.Printf("  %s/%s\n", r.Kind, r.Name)
 			}
 		}
@@ -105,28 +128,32 @@ $ helm datarobot admin-chart ./datarobot-prime-11.10.88.tgz \
 }
 
 type adminChartInput struct {
-	Namespace   string
-	ReleaseName string
-	KubeVersion string
-	Output      string
-	ValueFiles  []string
-	Values      []string
-	APIVersions []string
-	OpenShift   bool
-	Debug       bool
+	Namespace       string
+	ReleaseName     string
+	KubeVersion     string
+	Output          string
+	ValueFiles      []string
+	Values          []string
+	APIVersions     []string
+	OpenShift       bool
+	Debug           bool
+	ExtraAdminKinds []string
+	KeepCRDs        bool
 }
 
 var acInput adminChartInput
 
 func init() {
 	rootCmd.AddCommand(adminChartCmd)
-	adminChartCmd.Flags().StringVar(&acInput.Namespace, "namespace", "", "Kubernetes namespace (required)")
+	adminChartCmd.Flags().StringVar(&acInput.Namespace, "namespace", "", `Kubernetes namespace for .Release.Namespace template rendering (default: "default")`)
 	adminChartCmd.Flags().StringVar(&acInput.ReleaseName, "release-name", "datarobot", "Helm release name")
 	adminChartCmd.Flags().StringVar(&acInput.KubeVersion, "kube-version", "v1.32.0", "Kubernetes version for template rendering")
-	adminChartCmd.Flags().StringVarP(&acInput.Output, "output", "o", "", "Output path for the admin chart .tgz (required)")
+	adminChartCmd.Flags().StringVarP(&acInput.Output, "output", "o", "", "Output path for the admin chart .tgz (default: ./datarobot-admin-<version>.tgz)")
 	adminChartCmd.Flags().StringSliceVarP(&acInput.ValueFiles, "values", "f", []string{}, "Specify values in a YAML file (can specify multiple)")
 	adminChartCmd.Flags().StringArrayVar(&acInput.Values, "set", []string{}, "Set values on the command line (can specify multiple)")
 	adminChartCmd.Flags().StringSliceVar(&acInput.APIVersions, "api-versions", []string{}, "Additional API versions for template rendering")
 	adminChartCmd.Flags().BoolVar(&acInput.OpenShift, "openshift", false, "Include OpenShift API versions (security.openshift.io/v1, route.openshift.io/v1)")
 	adminChartCmd.Flags().BoolVarP(&acInput.Debug, "debug", "d", false, "Print detailed resource listing")
+	adminChartCmd.Flags().StringSliceVar(&acInput.ExtraAdminKinds, "extra-admin-kinds", []string{}, "Resource kinds to force into the admin chart even if namespaced (e.g. Role,RoleBinding,ServiceAccount). Useful for PNC-style restricted RBAC where cluster-admin cannot be assumed.")
+	adminChartCmd.Flags().BoolVar(&acInput.KeepCRDs, "keep-crds", true, "Add helm.sh/resource-policy: keep annotation to CRDs in the generated chart to prevent CR data loss on uninstall.")
 }

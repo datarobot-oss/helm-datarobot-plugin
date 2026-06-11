@@ -1,0 +1,8 @@
+{{- if .Values.installCRDs }}
+apiVersion: example.datarobot.com/v1
+kind: TestCluster
+metadata:
+  name: {{ .Release.Name }}-cluster-sample
+spec:
+  baz: qux
+{{- end }}

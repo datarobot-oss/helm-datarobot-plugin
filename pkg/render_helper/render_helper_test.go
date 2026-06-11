@@ -2,6 +2,7 @@ package render_helper
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -241,4 +242,74 @@ func TestRenderChartWithOptions(t *testing.T) {
 	// Release name from opts reflected in rendered output.
 	assert.Contains(t, result, "name: custom-release-test-chart6")
 	assert.Contains(t, result, "app.kubernetes.io/instance: custom-release")
+}
+
+// TestRenderChart_IncludeHooks verifies that hook manifests appear only when IncludeHooks=true.
+// Uses an inline minimal chart written to t.TempDir() — does NOT modify tests/charts/.
+func TestRenderChart_IncludeHooks(t *testing.T) {
+	chartDir := t.TempDir()
+
+	// Chart.yaml
+	chartYAML := `apiVersion: v2
+name: hook-test
+version: 0.1.0
+`
+	if err := os.WriteFile(filepath.Join(chartDir, "Chart.yaml"), []byte(chartYAML), 0644); err != nil {
+		t.Fatalf("write Chart.yaml: %v", err)
+	}
+
+	// templates/
+	templatesDir := filepath.Join(chartDir, "templates")
+	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+		t.Fatalf("mkdir templates: %v", err)
+	}
+
+	// Normal resource
+	normalCM := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: normal-cm
+data:
+  key: value
+`
+	if err := os.WriteFile(filepath.Join(templatesDir, "configmap.yaml"), []byte(normalCM), 0644); err != nil {
+		t.Fatalf("write configmap.yaml: %v", err)
+	}
+
+	// Hook resource
+	hookCM := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hook-cm
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-delete-policy": hook-succeeded
+data:
+  key: hook-value
+`
+	if err := os.WriteFile(filepath.Join(templatesDir, "hook-configmap.yaml"), []byte(hookCM), 0644); err != nil {
+		t.Fatalf("write hook-configmap.yaml: %v", err)
+	}
+
+	// Without hooks: hook-cm must NOT appear.
+	resultNoHooks, err := RenderChart(chartDir, []string{}, []string{}, &RenderOptions{
+		Namespace:    "test",
+		ReleaseName:  "test",
+		KubeVersion:  "v1.27.0",
+		IncludeHooks: false,
+	})
+	assert.NoError(t, err)
+	assert.Contains(t, resultNoHooks, "normal-cm", "normal resource must appear")
+	assert.NotContains(t, resultNoHooks, "hook-cm", "hook resource must not appear when IncludeHooks=false")
+
+	// With hooks: hook-cm must appear.
+	resultWithHooks, err := RenderChart(chartDir, []string{}, []string{}, &RenderOptions{
+		Namespace:    "test",
+		ReleaseName:  "test",
+		KubeVersion:  "v1.27.0",
+		IncludeHooks: true,
+	})
+	assert.NoError(t, err)
+	assert.Contains(t, resultWithHooks, "normal-cm", "normal resource must appear")
+	assert.Contains(t, resultWithHooks, "hook-cm", "hook resource must appear when IncludeHooks=true")
 }

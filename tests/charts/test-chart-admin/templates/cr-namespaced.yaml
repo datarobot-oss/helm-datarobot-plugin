@@ -1,0 +1,8 @@
+{{- if .Values.installCRDs }}
+apiVersion: example.datarobot.com/v1
+kind: TestResource
+metadata:
+  name: {{ .Release.Name }}-sample
+spec:
+  foo: bar
+{{- end }}

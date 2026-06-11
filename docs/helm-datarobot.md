@@ -21,6 +21,7 @@ helm-datarobot [flags]
 * [helm-datarobot admin-chart](helm-datarobot_admin-chart.md)	 - Generate a helm chart containing all cluster-scoped resources
 * [helm-datarobot completion](helm-datarobot_completion.md)	 - Generate the autocompletion script for the specified shell
 * [helm-datarobot docs](helm-datarobot_docs.md)	 - Generate document in MarkDown format
+* [helm-datarobot filter-resources](helm-datarobot_filter-resources.md)	 - Filter rendered Helm manifests by scope (stdin → stdout)
 * [helm-datarobot generate](helm-datarobot_generate.md)	 - generate
 * [helm-datarobot images](helm-datarobot_images.md)	 - list images from a given chart
 * [helm-datarobot load](helm-datarobot_load.md)	 - load all images from a tgz file to a specific registry

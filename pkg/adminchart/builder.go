@@ -17,6 +17,8 @@ type ChartOptions struct {
 	Name       string
 	Version    string
 	AppVersion string
+	SourceName string // name of the source chart (e.g. "datarobot-prime") — used in Description
+	KeepCRDs   bool   // when true, add annotation helm.sh/resource-policy: keep to every CustomResourceDefinition
 }
 
 // BuildChart creates a *chart.Chart from a slice of resources.
@@ -26,7 +28,24 @@ func BuildChart(resources []manifest.Resource, opts ChartOptions) (*chart.Chart,
 		return nil, fmt.Errorf("no resources provided")
 	}
 
-	grouped := manifest.GroupByKind(resources)
+	// Process each resource: strip hook annotations, apply keep policy for CRDs.
+	processed := make([]manifest.Resource, 0, len(resources))
+	for _, r := range resources {
+		stripped, err := r.StripHelmHookAnnotations()
+		if err != nil {
+			return nil, fmt.Errorf("strip hook annotations for %s/%s: %w", r.Kind, r.Name, err)
+		}
+		if opts.KeepCRDs && stripped.Kind == "CustomResourceDefinition" {
+			kept, err := stripped.WithAnnotation("helm.sh/resource-policy", "keep")
+			if err != nil {
+				return nil, fmt.Errorf("add keep annotation to %s: %w", stripped.Name, err)
+			}
+			stripped = kept
+		}
+		processed = append(processed, stripped)
+	}
+
+	grouped := manifest.GroupByKind(processed)
 
 	kinds := make([]string, 0, len(grouped))
 	for k := range grouped {
@@ -41,11 +60,18 @@ func BuildChart(resources []manifest.Resource, opts ChartOptions) (*chart.Chart,
 			parts = append(parts, r.RawYAML)
 		}
 		content := strings.Join(parts, "\n---\n")
+		// Escape Go-template braces so Helm does not try to evaluate them at install time.
+		content = strings.ReplaceAll(content, "{{", "{{`{{`}}")
 		name := fmt.Sprintf("templates/%ss.yaml", strings.ToLower(kind))
 		templates = append(templates, &chart.File{
 			Name: name,
 			Data: []byte(content),
 		})
+	}
+
+	sourceName := opts.SourceName
+	if sourceName == "" {
+		sourceName = opts.Name
 	}
 
 	c := &chart.Chart{
@@ -55,7 +81,7 @@ func BuildChart(resources []manifest.Resource, opts ChartOptions) (*chart.Chart,
 			Version:     opts.Version,
 			AppVersion:  opts.AppVersion,
 			Type:        "application",
-			Description: fmt.Sprintf("Cluster-scoped admin resources for %s %s", opts.Name, opts.Version),
+			Description: fmt.Sprintf("Cluster-scoped admin resources extracted from %s %s", sourceName, opts.Version),
 		},
 		Templates: templates,
 	}
@@ -65,23 +91,21 @@ func BuildChart(resources []manifest.Resource, opts ChartOptions) (*chart.Chart,
 
 // PackageChart saves c as a .tgz at outputPath.
 func PackageChart(c *chart.Chart, outputPath string) error {
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+	outDir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(outDir, 0755); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
 	}
 
-	tmpDir, err := os.MkdirTemp("", "adminchart-*")
-	if err != nil {
-		return fmt.Errorf("create temp dir: %w", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	saved, err := chartutil.Save(c, tmpDir)
+	// Save directly into the output directory — same filesystem, no cross-device rename.
+	saved, err := chartutil.Save(c, outDir)
 	if err != nil {
 		return fmt.Errorf("save chart: %w", err)
 	}
 
-	if err := os.Rename(saved, outputPath); err != nil {
-		return fmt.Errorf("move chart to output: %w", err)
+	if filepath.Clean(saved) != filepath.Clean(outputPath) {
+		if err := os.Rename(saved, outputPath); err != nil {
+			return fmt.Errorf("move chart to output: %w", err)
+		}
 	}
 
 	return nil

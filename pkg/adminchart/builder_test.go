@@ -123,3 +123,143 @@ func TestPackageChart(t *testing.T) {
 		t.Errorf("loaded name = %q, want myadmin", loaded.Metadata.Name)
 	}
 }
+
+// TestBuildChart_BraceEscaping verifies that {{ in resource YAML is escaped
+// so Helm does not try to template it at install time.
+func TestBuildChart_BraceEscaping(t *testing.T) {
+	r := manifest.Resource{
+		Kind: "ClusterRole",
+		Name: "brace-test",
+		RawYAML: strings.TrimSpace(`
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: brace-test
+  annotations:
+    description: "uses {{ .Values.foo }} in description"`),
+	}
+
+	c, err := BuildChart([]manifest.Resource{r}, ChartOptions{Name: "x", Version: "1.0.0"})
+	if err != nil {
+		t.Fatalf("BuildChart error: %v", err)
+	}
+	if len(c.Templates) != 1 {
+		t.Fatalf("template count = %d, want 1", len(c.Templates))
+	}
+	content := string(c.Templates[0].Data)
+
+	// No raw {{ .Values should remain — they must be escaped.
+	if strings.Contains(content, "{{ .Values") {
+		t.Errorf("raw {{ .Values found in template; should be escaped. content:\n%s", content)
+	}
+	// The escaped form must be present.
+	const escaped = "{{`{{`}}"
+	if !strings.Contains(content, escaped) {
+		t.Errorf("escaped form %q not found in template. content:\n%s", escaped, content)
+	}
+}
+
+// TestBuildChart_SourceNameDescription verifies Description uses SourceName, not opts.Name.
+func TestBuildChart_SourceNameDescription(t *testing.T) {
+	r := makeResource("ClusterRole", "role-a")
+	opts := ChartOptions{
+		Name:       "datarobot-admin",
+		SourceName: "datarobot-prime",
+		Version:    "2.3.4",
+	}
+	c, err := BuildChart([]manifest.Resource{r}, opts)
+	if err != nil {
+		t.Fatalf("BuildChart error: %v", err)
+	}
+	want := "Cluster-scoped admin resources extracted from datarobot-prime 2.3.4"
+	if c.Metadata.Description != want {
+		t.Errorf("Description = %q, want %q", c.Metadata.Description, want)
+	}
+}
+
+// TestBuildChart_SourceNameFallback verifies Description falls back to opts.Name when SourceName empty.
+func TestBuildChart_SourceNameFallback(t *testing.T) {
+	r := makeResource("ClusterRole", "role-a")
+	opts := ChartOptions{Name: "datarobot-admin", Version: "1.0.0"}
+	c, err := BuildChart([]manifest.Resource{r}, opts)
+	if err != nil {
+		t.Fatalf("BuildChart error: %v", err)
+	}
+	want := "Cluster-scoped admin resources extracted from datarobot-admin 1.0.0"
+	if c.Metadata.Description != want {
+		t.Errorf("Description = %q, want %q", c.Metadata.Description, want)
+	}
+}
+
+// TestBuildChart_KeepCRDs verifies helm.sh/resource-policy: keep is added to CRDs when KeepCRDs true.
+func TestBuildChart_KeepCRDs(t *testing.T) {
+	crd := manifest.Resource{
+		Kind:       "CustomResourceDefinition",
+		APIVersion: "apiextensions.k8s.io/v1",
+		Name:       "foos.example.com",
+		RawYAML: strings.TrimSpace(`
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: foos.example.com`),
+	}
+	role := makeResource("ClusterRole", "role-a")
+
+	opts := ChartOptions{Name: "x", Version: "1.0.0", KeepCRDs: true}
+	c, err := BuildChart([]manifest.Resource{crd, role}, opts)
+	if err != nil {
+		t.Fatalf("BuildChart error: %v", err)
+	}
+
+	var crdContent string
+	for _, tpl := range c.Templates {
+		if strings.Contains(tpl.Name, "customresourcedefinition") {
+			crdContent = string(tpl.Data)
+		}
+	}
+	if crdContent == "" {
+		t.Fatal("CRD template not found")
+	}
+	if !strings.Contains(crdContent, "helm.sh/resource-policy") {
+		t.Errorf("keep annotation not found in CRD template:\n%s", crdContent)
+	}
+	if !strings.Contains(crdContent, "keep") {
+		t.Errorf("keep value not found in CRD template:\n%s", crdContent)
+	}
+
+	// ClusterRole should NOT have the annotation.
+	var roleContent string
+	for _, tpl := range c.Templates {
+		if strings.Contains(tpl.Name, "clusterrole") {
+			roleContent = string(tpl.Data)
+		}
+	}
+	if strings.Contains(roleContent, "helm.sh/resource-policy") {
+		t.Errorf("keep annotation unexpectedly added to ClusterRole template")
+	}
+}
+
+// TestBuildChart_StripHookAnnotations verifies hook annotations are stripped from resources.
+func TestBuildChart_StripHookAnnotations(t *testing.T) {
+	r := manifest.Resource{
+		Kind: "ClusterRole",
+		Name: "hook-role",
+		RawYAML: strings.TrimSpace(`
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hook-role
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-delete-policy": hook-succeeded`),
+	}
+
+	c, err := BuildChart([]manifest.Resource{r}, ChartOptions{Name: "x", Version: "1.0.0"})
+	if err != nil {
+		t.Fatalf("BuildChart error: %v", err)
+	}
+	content := string(c.Templates[0].Data)
+	if strings.Contains(content, "helm.sh/hook") {
+		t.Errorf("hook annotations still present after strip:\n%s", content)
+	}
+}
