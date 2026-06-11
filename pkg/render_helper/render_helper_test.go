@@ -27,7 +27,7 @@ image:
   tag: stable
 `)()
 
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile}, []string{})
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile}, []string{}, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -85,7 +85,7 @@ resources:
     cpu: 200m
 `)()
 
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, []string{})
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, []string{}, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -144,7 +144,7 @@ resources:
 `)()
 
 	setValues := []string{"replicaCount=3"}
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, setValues)
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, setValues, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -186,7 +186,7 @@ spec:
 // TestRenderChartEmptyFilesInputSet
 func TestRenderChartEmptyFilesInputSet(t *testing.T) {
 	setValues := []string{"replicaCount=3", "image.tag=inputset"}
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{}, setValues)
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{}, setValues, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -223,4 +223,22 @@ spec:
               memory: 128Mi
 `
 	assert.Equal(t, expected, values)
+}
+
+// TestRenderChartWithOptions tests that custom RenderOptions are applied correctly.
+func TestRenderChartWithOptions(t *testing.T) {
+	opts := &RenderOptions{
+		Namespace:   "custom-ns",
+		ReleaseName: "custom-release",
+		KubeVersion: "v1.29.0",
+		IncludeCRDs: false,
+		APIVersions: []string{"apps/v1"},
+	}
+
+	setValues := []string{"image.tag=custom"}
+	result, err := RenderChart("../../tests/charts/test-chart6/", []string{}, setValues, opts)
+	assert.NoError(t, err)
+	// Release name from opts reflected in rendered output.
+	assert.Contains(t, result, "name: custom-release-test-chart6")
+	assert.Contains(t, result, "app.kubernetes.io/instance: custom-release")
 }

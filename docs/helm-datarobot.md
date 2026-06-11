@@ -18,6 +18,7 @@ helm-datarobot [flags]
 
 ### SEE ALSO
 
+* [helm-datarobot admin-chart](helm-datarobot_admin-chart.md)	 - Generate a helm chart containing all cluster-scoped resources
 * [helm-datarobot completion](helm-datarobot_completion.md)	 - Generate the autocompletion script for the specified shell
 * [helm-datarobot docs](helm-datarobot_docs.md)	 - Generate document in MarkDown format
 * [helm-datarobot generate](helm-datarobot_generate.md)	 - generate

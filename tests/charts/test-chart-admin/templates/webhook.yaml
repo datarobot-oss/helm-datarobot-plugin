@@ -1,0 +1,19 @@
+{{- if .Values.installWebhooks }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ .Release.Name }}-validating
+webhooks:
+  - name: validate.example.com
+    admissionReviewVersions: ["v1"]
+    clientConfig:
+      service:
+        name: {{ .Release.Name }}-webhook
+        namespace: {{ .Release.Namespace }}
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    sideEffects: None
+{{- end }}

@@ -11,19 +11,47 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 )
 
-func RenderChart(chartPath string, valueFiles []string, Values []string) (string, error) {
+// RenderOptions controls how a chart is rendered. If nil is passed to RenderChart, defaultOptions() is used.
+type RenderOptions struct {
+	Namespace   string
+	ReleaseName string
+	KubeVersion string
+	IncludeCRDs bool
+	APIVersions []string
+}
+
+func defaultOptions() *RenderOptions {
+	return &RenderOptions{
+		Namespace:   "test",
+		ReleaseName: "test-release",
+		KubeVersion: "v1.27.0",
+		IncludeCRDs: false,
+		APIVersions: nil,
+	}
+}
+
+func RenderChart(chartPath string, valueFiles []string, Values []string, opts *RenderOptions) (string, error) {
+	if opts == nil {
+		opts = defaultOptions()
+	}
+
 	client := action.NewInstall(&action.Configuration{})
 	client.ClientOnly = true
 	client.DryRun = true
-	client.ReleaseName = "test-release"
-	client.IncludeCRDs = false
-	client.Namespace = "test"
+	client.ReleaseName = opts.ReleaseName
+	client.IncludeCRDs = opts.IncludeCRDs
+	client.Namespace = opts.Namespace
 	client.DisableHooks = true
-	parsedKubeVersion, err := chartutil.ParseKubeVersion("v1.27.0")
+
+	parsedKubeVersion, err := chartutil.ParseKubeVersion(opts.KubeVersion)
 	if err != nil {
 		return "", fmt.Errorf("invalid kube version: %s", err)
 	}
 	client.KubeVersion = parsedKubeVersion
+
+	if len(opts.APIVersions) > 0 {
+		client.APIVersions = opts.APIVersions
+	}
 
 	valueOpts := &values.Options{
 		ValueFiles: valueFiles,

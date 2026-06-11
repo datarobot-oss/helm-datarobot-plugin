@@ -28,7 +28,7 @@ $ helm datarobot validate chart.tgz
 	Args: cobra.MinimumNArgs(1), // Requires at least one argument (file path)
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
-		manifest, err := render_helper.RenderChart(chartPath, v.ValueFiles, v.Values)
+		manifest, err := render_helper.RenderChart(chartPath, v.ValueFiles, v.Values, nil)
 		if err != nil {
 			return fmt.Errorf("Error loading chart %s: %v", chartPath, err)
 		}

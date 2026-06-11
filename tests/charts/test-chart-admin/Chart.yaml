@@ -1,0 +1,6 @@
+apiVersion: v2
+name: test-chart-admin
+description: Test chart with cluster-scoped resources for admin-chart command testing
+type: application
+version: 11.10.88
+appVersion: "11.10.88"
