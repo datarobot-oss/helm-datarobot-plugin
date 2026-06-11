@@ -14,11 +14,12 @@ import (
 
 // ChartOptions holds metadata for the generated admin chart.
 type ChartOptions struct {
-	Name       string
-	Version    string
-	AppVersion string
-	SourceName string // name of the source chart (e.g. "datarobot-prime") — used in Description
-	KeepCRDs   bool   // when true, add annotation helm.sh/resource-policy: keep to every CustomResourceDefinition
+	Name         string
+	Version      string
+	AppVersion   string
+	SourceName   string              // name of the source chart (e.g. "datarobot-prime") — used in Description
+	KeepCRDs     bool                // when true, add annotation helm.sh/resource-policy: keep to every CustomResourceDefinition
+	PipelineRBAC []manifest.Resource // when non-empty, emitted as templates/pipeline-rbac.yaml (single auditable unit)
 }
 
 // BuildChart creates a *chart.Chart from a slice of resources.
@@ -66,6 +67,21 @@ func BuildChart(resources []manifest.Resource, opts ChartOptions) (*chart.Chart,
 		templates = append(templates, &chart.File{
 			Name: name,
 			Data: []byte(content),
+		})
+	}
+
+	// Emit pipeline RBAC as one auditable template file (not grouped by kind,
+	// not processed through StripHelmHookAnnotations/KeepCRDs — generated clean).
+	if len(opts.PipelineRBAC) > 0 {
+		rbacParts := make([]string, 0, len(opts.PipelineRBAC))
+		for _, r := range opts.PipelineRBAC {
+			rbacParts = append(rbacParts, r.RawYAML)
+		}
+		rbacContent := strings.Join(rbacParts, "\n---\n")
+		rbacContent = strings.ReplaceAll(rbacContent, "{{", "{{`{{`}}")
+		templates = append(templates, &chart.File{
+			Name: "templates/pipeline-rbac.yaml",
+			Data: []byte(rbacContent),
 		})
 	}
 

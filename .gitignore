@@ -2,6 +2,8 @@
 build
 dist
 helm-datarobot
+bin/
+datarobot-admin/
 **/*.tar.gz
 **/*.tgz
 **/*.zst

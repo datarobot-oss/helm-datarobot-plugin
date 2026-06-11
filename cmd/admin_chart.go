@@ -10,6 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// defaultClusterReadKindsCopy is a copy of adminchart.DefaultClusterReadKinds used
+// as the flag default so the flag value is independent from the package variable.
+var defaultClusterReadKindsCopy = append([]string(nil), adminchart.DefaultClusterReadKinds...)
+
 var adminChartCmd = &cobra.Command{
 	Use:          "admin-chart",
 	Short:        "Generate a helm chart containing all cluster-scoped resources",
@@ -22,6 +26,13 @@ installable Helm chart.
 Use --extra-admin-kinds to force additional kinds (e.g. Role, RoleBinding,
 ServiceAccount) into the admin chart for PNC-style restricted RBAC environments
 where cluster-admin install handles those privileged resources.
+
+Namespace pinning: when --pipeline-sa is set, the generated pipeline RBAC
+(ServiceAccount, RoleBindings) is namespaced to the --namespace value supplied
+at GENERATION time. The generated admin chart must be installed into that exact
+namespace, and that namespace must equal the namespace used for the future
+application chart install. Changing --namespace after generation requires
+regenerating the admin chart.
 
 Example:
 '''sh
@@ -103,6 +114,49 @@ $ helm datarobot admin-chart ./datarobot-prime-11.10.88.tgz \
 			KeepCRDs:   acInput.KeepCRDs,
 		}
 
+		pipelineSA := acInput.PipelineSA
+		if pipelineSA != "" {
+			// Warn if the admin partition already contains a ServiceAccount with the same
+			// name — installing both would fail with a conflict.
+			for _, r := range result.Admin {
+				if r.Kind == "ServiceAccount" && r.Name == pipelineSA {
+					cmd.PrintErrln("warning: --pipeline-sa name " + pipelineSA + " collides with an existing ServiceAccount in the admin partition (added via --extra-admin-kinds); duplicate SA will fail install — choose a different --pipeline-sa name or drop ServiceAccount from --extra-admin-kinds")
+					break
+				}
+			}
+
+			unionRules, err := manifest.RoleRules(result.App)
+			if err != nil {
+				return fmt.Errorf("failed to compute role-union rules: %w", err)
+			}
+
+			clusterReadRules, err := adminchart.ClusterReadRules(acInput.ClusterReadKinds)
+			if err != nil {
+				return fmt.Errorf("invalid --cluster-read-kinds: %w", err)
+			}
+
+			rbac, err := adminchart.BuildPipelineRBAC(adminchart.PipelineRBACOptions{
+				SAName:           pipelineSA,
+				Namespace:        namespace,
+				ReleaseName:      acInput.ReleaseName,
+				ClusterReadRules: clusterReadRules,
+				UnionRules:       unionRules,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to build pipeline RBAC: %w", err)
+			}
+			chartOpts.PipelineRBAC = rbac
+
+			var unionSummary string
+			if len(unionRules) == 0 {
+				unionSummary = "role-union skipped (no Roles in app partition)"
+			} else {
+				unionSummary = fmt.Sprintf("role-union from %d Role rules", len(unionRules))
+			}
+			cmd.Printf("Pipeline RBAC: SA %s/%s, cluster-read (%d kinds), %s\n",
+				namespace, pipelineSA, len(acInput.ClusterReadKinds), unionSummary)
+		}
+
 		adminChart, err := adminchart.BuildChart(result.Admin, chartOpts)
 		if err != nil {
 			return fmt.Errorf("failed to build admin chart: %w", err)
@@ -128,24 +182,26 @@ $ helm datarobot admin-chart ./datarobot-prime-11.10.88.tgz \
 }
 
 type adminChartInput struct {
-	Namespace       string
-	ReleaseName     string
-	KubeVersion     string
-	Output          string
-	ValueFiles      []string
-	Values          []string
-	APIVersions     []string
-	OpenShift       bool
-	Debug           bool
-	ExtraAdminKinds []string
-	KeepCRDs        bool
+	Namespace        string
+	ReleaseName      string
+	KubeVersion      string
+	Output           string
+	ValueFiles       []string
+	Values           []string
+	APIVersions      []string
+	OpenShift        bool
+	Debug            bool
+	ExtraAdminKinds  []string
+	KeepCRDs         bool
+	PipelineSA       string
+	ClusterReadKinds []string
 }
 
 var acInput adminChartInput
 
 func init() {
 	rootCmd.AddCommand(adminChartCmd)
-	adminChartCmd.Flags().StringVar(&acInput.Namespace, "namespace", "", `Kubernetes namespace for .Release.Namespace template rendering (default: "default")`)
+	adminChartCmd.Flags().StringVar(&acInput.Namespace, "namespace", "", `Kubernetes namespace for .Release.Namespace template rendering (default: "default"). When --pipeline-sa is set, this value is also used as the namespace for the generated SA and RoleBindings; it must equal the namespace where both the admin chart and the future app chart will be installed.`)
 	adminChartCmd.Flags().StringVar(&acInput.ReleaseName, "release-name", "datarobot", "Helm release name")
 	adminChartCmd.Flags().StringVar(&acInput.KubeVersion, "kube-version", "v1.32.0", "Kubernetes version for template rendering")
 	adminChartCmd.Flags().StringVarP(&acInput.Output, "output", "o", "", "Output path for the admin chart .tgz (default: ./datarobot-admin-<version>.tgz)")
@@ -156,4 +212,6 @@ func init() {
 	adminChartCmd.Flags().BoolVarP(&acInput.Debug, "debug", "d", false, "Print detailed resource listing")
 	adminChartCmd.Flags().StringSliceVar(&acInput.ExtraAdminKinds, "extra-admin-kinds", []string{}, "Resource kinds to force into the admin chart even if namespaced (e.g. Role,RoleBinding,ServiceAccount). Useful for PNC-style restricted RBAC where cluster-admin cannot be assumed.")
 	adminChartCmd.Flags().BoolVar(&acInput.KeepCRDs, "keep-crds", true, "Add helm.sh/resource-policy: keep annotation to CRDs in the generated chart to prevent CR data loss on uninstall.")
+	adminChartCmd.Flags().StringVar(&acInput.PipelineSA, "pipeline-sa", "", "Name of the limited-privilege ServiceAccount to bootstrap for pipeline use. When set, generates: SA + RoleBinding to built-in admin ClusterRole + cluster-read ClusterRole/CRB (for chart render-time lookup calls) + role-union ClusterRole/RoleBinding (RBAC escalation prevention fix). Empty = feature off. Note: the SA and RoleBindings are namespaced to the --namespace value at GENERATION time; the admin chart must be installed into that namespace and it must equal the future app-install namespace. Note: role-union covers rules from kind: Role only; RoleBindings referencing ClusterRoles are not covered yet.")
+	adminChartCmd.Flags().StringSliceVar(&acInput.ClusterReadKinds, "cluster-read-kinds", defaultClusterReadKindsCopy, `"resource.group" specs for the cluster-read ClusterRole rules (e.g. storageclasses.storage.k8s.io,namespaces).`)
 }

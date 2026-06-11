@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-role-with-resourcenames
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["my-secret"]
+    verbs: ["get"]
+  - apiGroups: ["*"]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
