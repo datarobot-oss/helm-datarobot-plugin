@@ -81,6 +81,95 @@ spec:
 	assert.Contains(t, got.RawYAML, "helm.sh/resource-policy: keep")
 }
 
+func TestStripKeepAnnotation(t *testing.T) {
+	r := Resource{RawYAML: `kind: CustomResourceDefinition
+metadata:
+  name: x
+  annotations:
+    helm.sh/resource-policy: keep
+    foo: bar`}
+	got, err := StripKeepAnnotation(r)
+	assert.NoError(t, err)
+
+	var m map[string]interface{}
+	assert.NoError(t, yaml.Unmarshal([]byte(got.RawYAML), &m))
+	meta := m["metadata"].(map[string]interface{})
+	ann := meta["annotations"].(map[string]interface{})
+	_, hasKeep := ann["helm.sh/resource-policy"]
+	assert.False(t, hasKeep)
+	assert.Equal(t, "bar", ann["foo"])
+	assert.Equal(t, "x", meta["name"])
+}
+
+func TestStripKeepAnnotationRemovesEmptyAnnotations(t *testing.T) {
+	r := Resource{RawYAML: `kind: CustomResourceDefinition
+metadata:
+  name: x
+  annotations:
+    helm.sh/resource-policy: keep
+spec: {}`}
+	got, err := StripKeepAnnotation(r)
+	assert.NoError(t, err)
+
+	var m map[string]interface{}
+	assert.NoError(t, yaml.Unmarshal([]byte(got.RawYAML), &m))
+	meta := m["metadata"].(map[string]interface{})
+	_, hasAnnotations := meta["annotations"]
+	assert.False(t, hasAnnotations)
+	assert.Equal(t, "x", meta["name"])
+}
+
+func TestStripKeepAnnotationNoop(t *testing.T) {
+	r := Resource{RawYAML: `kind: CustomResourceDefinition
+metadata:
+  name: x
+spec: {}`}
+	got, err := StripKeepAnnotation(r)
+	assert.NoError(t, err)
+
+	var want, have map[string]interface{}
+	assert.NoError(t, yaml.Unmarshal([]byte(r.RawYAML), &want))
+	assert.NoError(t, yaml.Unmarshal([]byte(got.RawYAML), &have))
+	assert.Equal(t, want, have)
+}
+
+// TestStripKeepAnnotationPreservesKeyOrderAndIndent proves the annotation is
+// removed without reordering sibling keys or re-indenting the document, the
+// same guarantee AddKeepAnnotation's yaml.Node round-trip provides.
+func TestStripKeepAnnotationPreservesKeyOrderAndIndent(t *testing.T) {
+	r := Resource{RawYAML: `apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: widgets.example.com
+  annotations:
+    helm.sh/resource-policy: keep
+    foo: bar
+spec:
+  zeta: 1
+  alpha: 2
+  group: example.com`}
+	got, err := StripKeepAnnotation(r)
+	assert.NoError(t, err)
+
+	// Original 2-space indentation is preserved (no 4-space re-indent).
+	assert.Contains(t, got.RawYAML, "\n  zeta: 1")
+	// Sibling key order under spec is preserved (zeta before alpha before group).
+	iZeta := strings.Index(got.RawYAML, "zeta")
+	iAlpha := strings.Index(got.RawYAML, "alpha")
+	iGroup := strings.Index(got.RawYAML, "group")
+	assert.True(t, iZeta < iAlpha && iAlpha < iGroup, "spec key order not preserved: %s", got.RawYAML)
+	// Top-level order preserved: apiVersion before kind before metadata before spec.
+	assert.True(t,
+		strings.Index(got.RawYAML, "apiVersion") <
+			strings.Index(got.RawYAML, "kind:") &&
+			strings.Index(got.RawYAML, "kind:") <
+				strings.Index(got.RawYAML, "spec:"),
+		"top-level key order not preserved: %s", got.RawYAML)
+	// resource-policy removed, sibling annotation preserved.
+	assert.NotContains(t, got.RawYAML, "helm.sh/resource-policy")
+	assert.Contains(t, got.RawYAML, "foo: bar")
+}
+
 func TestEscapeBraces(t *testing.T) {
 	in := `x: "{{ .foo }}" and {{bar}}`
 	out := EscapeBraces(in)

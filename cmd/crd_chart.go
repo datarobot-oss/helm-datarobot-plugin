@@ -53,8 +53,18 @@ $ helm datarobot crd-chart datarobot-prime.tgz -o datarobot-crds.tgz
 		// global.installCRDs re-enables the templated DR CRDs that a
 		// production values.yaml may have disabled. Appended AFTER the
 		// user's --set so these win.
+		//
+		// installCRDs and keepCRDs are deliberately asymmetric: installCRDs is
+		// always forced true because it gates whether the CRD is EMITTED at all
+		// (we need it emitted to extract it, regardless of --keep-crds). keepCRDs
+		// mirrors the --keep-crds flag because it only gates the
+		// helm.sh/resource-policy: keep ANNOTATION some source charts bake in at
+		// render time. Don't "simplify" these back to both being forced true --
+		// that reintroduces CRD-001 (the annotation leaking into --keep-crds=false
+		// output).
 		forced := append([]string{}, cc.Values...)
-		forced = append(forced, "global.installCRDs=true", "global.keepCRDs=true")
+		forced = append(forced, "global.installCRDs=true",
+			fmt.Sprintf("global.keepCRDs=%t", cc.KeepCRDs))
 
 		manifest, err := render_helper.RenderChartWithOptions(chartPath, cc.ValueFiles, forced, &render_helper.RenderOptions{
 			Namespace:   cc.Namespace,
@@ -85,9 +95,11 @@ $ helm datarobot crd-chart datarobot-prime.tgz -o datarobot-crds.tgz
 		for i, r := range crds {
 			if cc.KeepCRDs {
 				r, err = crdchart.AddKeepAnnotation(r)
-				if err != nil {
-					return fmt.Errorf("failed to annotate CRD %s: %w", r.Name, err)
-				}
+			} else {
+				r, err = crdchart.StripKeepAnnotation(r)
+			}
+			if err != nil {
+				return fmt.Errorf("failed to annotate CRD %s: %w", r.Name, err)
 			}
 			r.RawYAML = crdchart.EscapeBraces(r.RawYAML)
 			crds[i] = r
