@@ -117,12 +117,30 @@ Skipping image: docker.io/alpine/curl:8.9.2
 		assert.Equal(t, expectedOutput, output)
 	})
 
+	t.Run("upgrade-from-match", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images --upgrade-from 10.0")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("upgrade-from-nomatch", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images --upgrade-from 11.0")
+		assert.NoError(t, err)
+		assert.NotContains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("no-upgrade", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images --no-upgrade")
+		assert.NoError(t, err)
+		assert.NotContains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
 	t.Run("local-registry-insecure", func(t *testing.T) {
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
 		os.Setenv("REGISTRY_HOST", "localhost:5000")
 		os.Setenv("SKIP_TLS_VERIFY", "true")
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a ex4")
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart6 -a ex4 --overwrite")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Pulling image: docker.io/alpine/curl:8.11.1
 Pushing image: localhost:5000/alpine/curl:8.11.1`

@@ -68,12 +68,12 @@ func TestCommandReleaseManifest(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("selected-labels", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart6  -a bitnami -l org.opencontainers.image.title -l org.opencontainers.image.base.name ")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart6  -a bitnamilegacy -l org.opencontainers.image.title -l org.opencontainers.image.base.name ")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   redis.tar.zst:
-    source: docker.io/bitnami/redis:7.4.2-debian-12-r0
-    name: docker.io/bitnami/redis
+    source: docker.io/bitnamilegacy/redis:7.4.2-debian-12-r0
+    name: docker.io/bitnamilegacy/redis
     tag: 7.4.2-debian-12-r0
     labels:
       org.opencontainers.image.base.name: docker.io/bitnami/minideb:bookworm
@@ -81,12 +81,12 @@ func TestCommandReleaseManifest(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("all-labels", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart6  -a bitnami --all-labels ")
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart6  -a bitnamilegacy --all-labels ")
 		assert.NoError(t, err)
 		expectedOutput := `images:
   redis.tar.zst:
-    source: docker.io/bitnami/redis:7.4.2-debian-12-r0
-    name: docker.io/bitnami/redis
+    source: docker.io/bitnamilegacy/redis:7.4.2-debian-12-r0
+    name: docker.io/bitnamilegacy/redis
     tag: 7.4.2-debian-12-r0
     labels:
       com.vmware.cp.artifact.flavor: sha256:c50c90cfd9d12b445b011e6ad529f1ad3daea45c26d20b00732fae3cd71f6a83

@@ -46,7 +46,7 @@ Tarball created successfully: image-load.tar.zst`
 		os.Setenv("REGISTRY_USERNAME", "admin")
 		os.Setenv("REGISTRY_PASSWORD", "pass")
 
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --insecure")
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r localhost:5000 --insecure --overwrite")
 		assert.NoError(t, err)
 		expectedLoadOutput := `Successfully pushed image localhost:5000/alpine/curl:8.9.1
 Successfully pushed image localhost:5000/busybox:1.36.1`
