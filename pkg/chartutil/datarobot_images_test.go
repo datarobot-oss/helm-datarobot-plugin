@@ -91,6 +91,17 @@ func TestExtractImagesFromCharts(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name:       "test-chart5 with datarobot.com/images",
+			chartPaths: []string{"../../tests/charts/test-chart5"},
+			annotation: "datarobot.com/images",
+			expectedImages: []DatarobotImageDeclaration{
+				{Name: "test-image3", Image: "docker.io/alpine/curl:8.9.1", Tag: "stable"},
+				{Name: "test-image30", Image: "busybox:1.36.1", Tag: "simple"},
+				{Name: "test-image31", Image: "docker.io/alpine/curl:8.10.0", Tag: ""},
+			},
+			expectError: false,
+		},
 	}
 
 	for _, tt := range tests {

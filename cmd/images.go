@@ -51,6 +51,27 @@ image: docker.io/datarobotdev/test-image3:3.0.0
 		if err != nil {
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
+
+		if upgradeFrom != "" {
+			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
+			for _, img := range allImages {
+				if img.UpgradeVersion == "" || IsUpgradeVersionSupported(img.UpgradeVersion, upgradeFrom) {
+					filteredImages = append(filteredImages, img)
+				}
+			}
+			allImages = filteredImages
+		}
+
+		if noUpgrade {
+			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
+			for _, img := range allImages {
+				if img.Group != "upgrade" {
+					filteredImages = append(filteredImages, img)
+				}
+			}
+			allImages = filteredImages
+		}
+
 		yamlData, err := yaml.Marshal(&allImages)
 		if err != nil {
 			return fmt.Errorf("Error writing yaml: %v", err)
@@ -65,4 +86,6 @@ image: docker.io/datarobotdev/test-image3:3.0.0
 func init() {
 	rootCmd.AddCommand(imageCmd)
 	imageCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
+	imageCmd.Flags().StringVar(&upgradeFrom, "upgrade-from", "", "version to upgrade from")
+	imageCmd.Flags().BoolVar(&noUpgrade, "no-upgrade", false, "skip all images with the upgrade notation")
 }
