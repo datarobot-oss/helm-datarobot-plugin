@@ -9,6 +9,8 @@ import (
 )
 
 var annotation string
+var upgradeFrom string
+var noUpgrade bool
 
 var rootCmd = &cobra.Command{
 	Use:   "helm-datarobot",
