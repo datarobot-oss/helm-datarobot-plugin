@@ -65,6 +65,26 @@ $ du -h images.tar.zst
 			return fmt.Errorf("Error ExtractImagesFromCharts: %v", err)
 		}
 
+		if upgradeFrom != "" {
+			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
+			for _, img := range images {
+				if img.UpgradeVersion == "" || IsUpgradeVersionSupported(img.UpgradeVersion, upgradeFrom) {
+					filteredImages = append(filteredImages, img)
+				}
+			}
+			images = filteredImages
+		}
+
+		if noUpgrade {
+			filteredImages := make([]chartutil.DatarobotImageDeclaration, 0)
+			for _, img := range images {
+				if img.Group != "upgrade" {
+					filteredImages = append(filteredImages, img)
+				}
+			}
+			images = filteredImages
+		}
+
 		manifestFile := filepath.Join(saveCfg.OutputDir, "manifest.json")
 
 		// Step 1: Export Layers and Save Configurations
@@ -114,6 +134,8 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveCfg.CompressionLevel, "level", "l", "best", "zstd compression level (Available options: fastest, default, better, best)")
 	saveCmd.Flags().StringArrayVarP(&saveCfg.ImageSkipGroup, "skip-group", "", []string{}, "Specify which image group should be skipped (can be used multiple times)")
 	saveCmd.Flags().BoolVarP(&saveCfg.DryRun, "dry-run", "", false, "Perform a dry run without making changes")
+	saveCmd.Flags().StringVar(&upgradeFrom, "upgrade-from", "", "version to upgrade from")
+	saveCmd.Flags().BoolVar(&noUpgrade, "no-upgrade", false, "Skip all images with the upgrade notation")
 }
 
 func exportLayersAndConfigs(images []chartutil.DatarobotImageDeclaration, c saveConfig, cmd *cobra.Command) (map[string]string, []ImageManifest) {

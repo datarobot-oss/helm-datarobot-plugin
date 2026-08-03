@@ -32,9 +32,11 @@ helm-datarobot save [flags]
       --dry-run                  Perform a dry run without making changes
   -h, --help                     help for save
   -l, --level string             zstd compression level (Available options: fastest, default, better, best) (default "best")
+      --no-upgrade               Skip all images with the upgrade notation
   -o, --output string            file to save (default "images.tar.zst")
       --output-dir string        file to save (default "export")
       --skip-group stringArray   Specify which image group should be skipped (can be used multiple times)
+      --upgrade-from string      version to upgrade from
 ```
 
 ### SEE ALSO
