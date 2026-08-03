@@ -106,6 +106,19 @@ func SliceHas(slice []string, str string) bool {
 	return false
 }
 
+// IsUpgradeVersionSupported checks if targetVersion is exactly in the comma-separated versions list.
+func IsUpgradeVersionSupported(versions, targetVersion string) bool {
+	if versions == "" {
+		return true
+	}
+	for _, v := range strings.Split(versions, ",") {
+		if strings.TrimSpace(v) == targetVersion {
+			return true
+		}
+	}
+	return false
+}
+
 func ExtractImagesFromManifest(manifest string) ([]string, error) {
 	var manifestImages []string
 

@@ -13,10 +13,11 @@ import (
 )
 
 type DatarobotImageDeclaration struct {
-	Name  string `yaml:"name"`
-	Image string `yaml:"image"`
-	Tag   string `yaml:"tag,omitempty"`
-	Group string `yaml:"group,omitempty"`
+	Name           string `yaml:"name"`
+	Image          string `yaml:"image"`
+	Tag            string `yaml:"tag,omitempty"`
+	Group          string `yaml:"group,omitempty"`
+	UpgradeVersion string `yaml:"upgrade_version,omitempty"`
 }
 
 type ChartImages struct {
