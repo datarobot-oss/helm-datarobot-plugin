@@ -64,10 +64,10 @@ Successfully pushed image localhost:5000/busybox:1.36.1`
 	})
 
 	t.Run("prefix-suffix", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r ttl.sh --prefix prefix --suffix suffix --overwrite")
+		output, err := executeCommand(rootCmd, "load "+LOAD_TEST_ARCHIVE+" -r ttl.sh --prefix prefix --suffix suffix --overwrite --dry-run")
 		assert.NoError(t, err)
-		expectedLoadOutput := `Successfully pushed image ttl.sh/prefix/alpine/suffix/curl:8.9.1
-Successfully pushed image ttl.sh/prefix/suffix/busybox:1.36.1`
+		expectedLoadOutput := `[Dry-Run] Pushing image: ttl.sh/prefix/alpine/suffix/curl:8.9.1
+[Dry-Run] Pushing image: ttl.sh/prefix/suffix/busybox:1.36.1`
 		assert.Equal(t, expectedLoadOutput, output)
 	})
 
