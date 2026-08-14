@@ -11,7 +11,7 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 )
 
-// BuildChart assembles the standalone datarobot-crds chart in memory:
+// BuildChart assembles the standalone datarobot-infra chart in memory:
 // one templates/crds.yaml holding every (already transformed) CRD body.
 func BuildChart(crds []Resource, src SourceMeta) (*chart.Chart, error) {
 	bodies := make([]string, 0, len(crds))
@@ -23,7 +23,7 @@ func BuildChart(crds []Resource, src SourceMeta) (*chart.Chart, error) {
 	c := &chart.Chart{
 		Metadata: &chart.Metadata{
 			APIVersion:  "v2",
-			Name:        "datarobot-crds",
+			Name:        "datarobot-infra",
 			Type:        "application",
 			Version:     src.Version,
 			AppVersion:  src.AppVersion,

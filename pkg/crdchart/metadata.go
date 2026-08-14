@@ -7,7 +7,7 @@ import (
 )
 
 // SourceMeta is the identity of the source chart, used to stamp the
-// generated datarobot-crds chart for traceability.
+// generated datarobot-infra chart for traceability.
 type SourceMeta struct {
 	Name       string
 	Version    string

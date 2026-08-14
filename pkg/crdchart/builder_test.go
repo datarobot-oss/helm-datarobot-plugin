@@ -16,7 +16,7 @@ func TestBuildChart(t *testing.T) {
 	}
 	c, err := BuildChart(crds, SourceMeta{Name: "datarobot-prime", Version: "11.10.88", AppVersion: "11.10.88"})
 	assert.NoError(t, err)
-	assert.Equal(t, "datarobot-crds", c.Metadata.Name)
+	assert.Equal(t, "datarobot-infra", c.Metadata.Name)
 	assert.Equal(t, "v2", c.Metadata.APIVersion)
 	assert.Equal(t, "11.10.88", c.Metadata.Version)
 	assert.Len(t, c.Templates, 1)
@@ -34,7 +34,7 @@ func TestPackageChartWritesTgz(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	out := filepath.Join(t.TempDir(), "datarobot-crds-1.0.0.tgz")
+	out := filepath.Join(t.TempDir(), "datarobot-infra-1.0.0.tgz")
 	assert.NoError(t, PackageChart(c, out))
 
 	fi, err := os.Stat(out)
@@ -44,5 +44,5 @@ func TestPackageChartWritesTgz(t *testing.T) {
 	// The written tarball must load back as a valid chart.
 	reloaded, err := loader.Load(out)
 	assert.NoError(t, err)
-	assert.Equal(t, "datarobot-crds", reloaded.Metadata.Name)
+	assert.Equal(t, "datarobot-infra", reloaded.Metadata.Name)
 }

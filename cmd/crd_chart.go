@@ -25,16 +25,16 @@ var cc crdChartInput
 
 var crdChartCmd = &cobra.Command{
 	Use:          "crd-chart <prime-chart.tgz>",
-	Short:        "extract CRDs from a chart into a standalone datarobot-crds chart",
+	Short:        "extract CRDs from a chart into a standalone datarobot-infra chart",
 	SilenceUsage: true,
 	Long: strings.Replace(`
 
 Render a chart (e.g. datarobot-prime) and extract only its
-CustomResourceDefinitions into a standalone, installable datarobot-crds chart.
+CustomResourceDefinitions into a standalone, installable datarobot-infra chart.
 
 Example:
 '''sh
-$ helm datarobot crd-chart datarobot-prime.tgz -o datarobot-crds.tgz
+$ helm datarobot crd-chart datarobot-prime.tgz -o datarobot-infra.tgz
 '''`, "'", "`", -1),
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -110,7 +110,7 @@ $ helm datarobot crd-chart datarobot-prime.tgz -o datarobot-crds.tgz
 
 		outPath := cc.Output
 		if outPath == "" {
-			outPath = fmt.Sprintf("./datarobot-crds-%s.tgz", src.Version)
+			outPath = fmt.Sprintf("./datarobot-infra-%s.tgz", src.Version)
 		}
 
 		builtChart, err := crdchart.BuildChart(crds, src)
@@ -134,7 +134,7 @@ func init() {
 	crdChartCmd.Flags().StringArrayVar(&cc.Values, "set", []string{}, "set values on the command line (can specify multiple)")
 	crdChartCmd.Flags().StringVar(&cc.KubeVersion, "kube-version", "v1.32.0", "Helm template KubeVersion")
 	crdChartCmd.Flags().StringSliceVar(&cc.APIVersions, "api-versions", []string{}, "extra API versions for rendering (can specify multiple)")
-	crdChartCmd.Flags().StringVarP(&cc.Output, "output", "o", "", "output .tgz path (default ./datarobot-crds-<srcVersion>.tgz)")
+	crdChartCmd.Flags().StringVarP(&cc.Output, "output", "o", "", "output .tgz path (default ./datarobot-infra-<srcVersion>.tgz)")
 	crdChartCmd.Flags().BoolVar(&cc.KeepCRDs, "keep-crds", true, "add helm.sh/resource-policy: keep annotation")
 	crdChartCmd.Flags().BoolVarP(&cc.Debug, "debug", "d", false, "verbose per-CRD listing")
 }

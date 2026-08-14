@@ -21,7 +21,7 @@ func TestCommandCrdChart(t *testing.T) {
 	// Generated chart loads and contains exactly the two CRDs, no noise.
 	c, err := loader.Load(out)
 	assert.NoError(t, err)
-	assert.Equal(t, "datarobot-crds", c.Metadata.Name)
+	assert.Equal(t, "datarobot-infra", c.Metadata.Name)
 	assert.Equal(t, "9.9.9", c.Metadata.Version) // copied from source
 
 	// Render the GENERATED chart: it must template cleanly (braces escaped)
@@ -47,12 +47,12 @@ func TestCommandCrdChartNoKeep(t *testing.T) {
 }
 
 func TestCommandCrdChartDefaultOutputName(t *testing.T) {
-	// No -o: default path ./datarobot-crds-<srcVersion>.tgz in cwd.
-	defer os.Remove("datarobot-crds-9.9.9.tgz")
+	// No -o: default path ./datarobot-infra-<srcVersion>.tgz in cwd.
+	defer os.Remove("datarobot-infra-9.9.9.tgz")
 	output, err := executeCommand(rootCmd, "crd-chart ../tests/charts/crd-test-chart")
 	assert.NoError(t, err)
 	assert.Contains(t, output, "Extracted 2 CRDs")
-	_, statErr := os.Stat("datarobot-crds-9.9.9.tgz")
+	_, statErr := os.Stat("datarobot-infra-9.9.9.tgz")
 	assert.NoError(t, statErr)
 }
 
