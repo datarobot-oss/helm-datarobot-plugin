@@ -19,6 +19,7 @@ helm-datarobot [flags]
 ### SEE ALSO
 
 * [helm-datarobot completion](helm-datarobot_completion.md)	 - Generate the autocompletion script for the specified shell
+* [helm-datarobot crd-chart](helm-datarobot_crd-chart.md)	 - extract CRDs from a chart into a standalone datarobot-infra chart
 * [helm-datarobot docs](helm-datarobot_docs.md)	 - Generate document in MarkDown format
 * [helm-datarobot generate](helm-datarobot_generate.md)	 - generate
 * [helm-datarobot images](helm-datarobot_images.md)	 - list images from a given chart

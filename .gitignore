@@ -19,3 +19,7 @@ release_description.md
 cover.out
 testResult_lint.xml
 testResult_unit.xml
+
+# local build / prototype artifacts
+/bin/
+/datarobot-admin/

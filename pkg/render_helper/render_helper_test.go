@@ -224,3 +224,23 @@ spec:
 `
 	assert.Equal(t, expected, values)
 }
+
+func TestRenderChartWithOptionsNamespaceRelease(t *testing.T) {
+	opts := &RenderOptions{
+		Namespace:   "datarobot",
+		ReleaseName: "my-release",
+		KubeVersion: "v1.32.0",
+		IncludeCRDs: false,
+	}
+	out, err := RenderChartWithOptions("../../tests/charts/test-chart6/", []string{}, []string{}, opts)
+	assert.NoError(t, err)
+	// ReleaseName flows into rendered resource names
+	assert.Contains(t, out, "name: my-release-test-chart6")
+}
+
+func TestRenderChartWrapperUnchanged(t *testing.T) {
+	// Wrapper must still produce test-release names (old default)
+	out, err := RenderChart("../../tests/charts/test-chart6/", []string{}, []string{"image.tag=x"})
+	assert.NoError(t, err)
+	assert.Contains(t, out, "name: test-release-test-chart6")
+}

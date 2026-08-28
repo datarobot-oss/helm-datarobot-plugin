@@ -1,0 +1,6 @@
+apiVersion: v2
+name: crd-test-chart
+description: Fixture with CRDs in templates/ and crds/, plus non-CRD noise
+type: application
+version: 9.9.9
+appVersion: "1.2.3"

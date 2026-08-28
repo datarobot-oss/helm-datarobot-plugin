@@ -11,15 +11,44 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 )
 
+type RenderOptions struct {
+	Namespace   string
+	ReleaseName string
+	KubeVersion string
+	IncludeCRDs bool
+	APIVersions []string
+}
+
+// RenderChart preserves the original behavior as a thin wrapper.
 func RenderChart(chartPath string, valueFiles []string, Values []string) (string, error) {
+	return RenderChartWithOptions(chartPath, valueFiles, Values, &RenderOptions{
+		Namespace:   "test",
+		ReleaseName: "test-release",
+		KubeVersion: "v1.27.0",
+		IncludeCRDs: false,
+	})
+}
+
+func RenderChartWithOptions(chartPath string, valueFiles, Values []string, opts *RenderOptions) (string, error) {
+	if opts == nil {
+		opts = &RenderOptions{}
+	}
 	client := action.NewInstall(&action.Configuration{})
 	client.ClientOnly = true
 	client.DryRun = true
-	client.ReleaseName = "test-release"
-	client.IncludeCRDs = false
-	client.Namespace = "test"
 	client.DisableHooks = true
-	parsedKubeVersion, err := chartutil.ParseKubeVersion("v1.27.0")
+	client.ReleaseName = opts.ReleaseName
+	client.Namespace = opts.Namespace
+	client.IncludeCRDs = opts.IncludeCRDs
+	if len(opts.APIVersions) > 0 {
+		client.APIVersions = chartutil.VersionSet(opts.APIVersions)
+	}
+
+	kubeVersion := opts.KubeVersion
+	if kubeVersion == "" {
+		kubeVersion = "v1.27.0"
+	}
+	parsedKubeVersion, err := chartutil.ParseKubeVersion(kubeVersion)
 	if err != nil {
 		return "", fmt.Errorf("invalid kube version: %s", err)
 	}
@@ -37,13 +66,12 @@ func RenderChart(chartPath string, valueFiles []string, Values []string) (string
 
 	var settings = cli.New()
 	p := getter.All(settings)
-	values, err := valueOpts.MergeValues(p)
+	vals, err := valueOpts.MergeValues(p)
 	if err != nil {
 		return "", err
 	}
 
-	// Render chart.
-	rel, err := client.Run(loadedChart, values)
+	rel, err := client.Run(loadedChart, vals)
 	if err != nil {
 		return "", fmt.Errorf("could not render helm chart correctly: %w", err)
 	}
