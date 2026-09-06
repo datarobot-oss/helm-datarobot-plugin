@@ -11,17 +11,19 @@ import (
 )
 
 type infraChartInput struct {
-	Namespace       string
-	ReleaseName     string
-	ValueFiles      []string
-	Values          []string
-	KubeVersion     string
-	APIVersions     []string
-	Output          string
-	KeepCRDs        bool
-	Debug           bool
-	ExtraAdminKinds []string
-	// Task 5 adds: PipelineSA, ClusterReadKinds, CRDAggregation
+	Namespace        string
+	ReleaseName      string
+	ValueFiles       []string
+	Values           []string
+	KubeVersion      string
+	APIVersions      []string
+	Output           string
+	KeepCRDs         bool
+	Debug            bool
+	ExtraAdminKinds  []string
+	PipelineSA       string
+	ClusterReadKinds []string
+	CRDAggregation   bool
 }
 
 var ic infraChartInput
@@ -93,6 +95,56 @@ $ helm datarobot infra-chart datarobot-prime.tgz -o datarobot-infra.tgz
 			KeepCRDs:   ic.KeepCRDs,
 		}
 
+		if ic.PipelineSA != "" {
+			namespace := ic.Namespace
+			if namespace == "" {
+				namespace = "default"
+			}
+
+			unionRules, err := manifest.RoleRules(result.App)
+			if err != nil {
+				return fmt.Errorf("failed to compute role-union rules: %w", err)
+			}
+			clusterReadRules, err := infrachart.ClusterReadRules(ic.ClusterReadKinds)
+			if err != nil {
+				return fmt.Errorf("invalid --cluster-read-kinds: %w", err)
+			}
+			rbac, err := infrachart.BuildPipelineRBAC(infrachart.PipelineRBACOptions{
+				SAName:           ic.PipelineSA,
+				Namespace:        namespace,
+				ReleaseName:      ic.ReleaseName,
+				ClusterReadRules: clusterReadRules,
+				UnionRules:       unionRules,
+				CRAccessGroups:   result.CRGroups,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to build pipeline RBAC: %w", err)
+			}
+			chartOpts.PipelineRBAC = rbac
+
+			unionSummary := "role-union skipped (no Roles in app partition)"
+			if len(unionRules) > 0 {
+				unionSummary = fmt.Sprintf("role-union from %d Role rules", len(unionRules))
+			}
+			cmd.Printf("Pipeline RBAC: SA %s/%s, cluster-read (%d kinds), %s, cr-access (%d groups)\n",
+				namespace, ic.PipelineSA, len(ic.ClusterReadKinds), unionSummary, len(result.CRGroups))
+		}
+
+		if ic.CRDAggregation {
+			crdRes, crdWarnings := manifest.CRDResources(result.Admin)
+			for _, w := range crdWarnings {
+				cmd.PrintErrln("warning: " + w)
+			}
+			if len(crdRes) > 0 {
+				agg, err := infrachart.BuildCRDAggregation(crdRes, ic.ReleaseName)
+				if err != nil {
+					return fmt.Errorf("failed to build CRD aggregation: %w", err)
+				}
+				chartOpts.CRDAggregation = agg
+				cmd.Printf("CRD aggregation: %s-crd-edit-aggregate (%d groups)\n", ic.ReleaseName, len(crdRes))
+			}
+		}
+
 		builtChart, err := infrachart.BuildChart(result.Admin, chartOpts)
 		if err != nil {
 			return fmt.Errorf("failed to build infra chart: %w", err)
@@ -127,4 +179,7 @@ func init() {
 	infraChartCmd.Flags().BoolVar(&ic.KeepCRDs, "keep-crds", true, "add helm.sh/resource-policy: keep annotation to CRDs")
 	infraChartCmd.Flags().BoolVarP(&ic.Debug, "debug", "d", false, "verbose per-resource listing")
 	infraChartCmd.Flags().StringSliceVar(&ic.ExtraAdminKinds, "extra-admin-kinds", []string{}, "resource kinds to force into the infra chart even if namespaced (e.g. Role,RoleBinding,ServiceAccount)")
+	infraChartCmd.Flags().StringVar(&ic.PipelineSA, "pipeline-sa", "", "name of the limited-privilege ServiceAccount to bootstrap (empty = off). Generates SA + RoleBinding to built-in admin + cluster-read ClusterRole/CRB + role-union ClusterRole/RoleBinding + cr-access ClusterRole/RoleBinding. Namespaced to --namespace at generation time.")
+	infraChartCmd.Flags().StringSliceVar(&ic.ClusterReadKinds, "cluster-read-kinds", append([]string(nil), infrachart.DefaultClusterReadKinds...), `"resource.group" specs for the cluster-read ClusterRole rules (e.g. storageclasses.storage.k8s.io,namespaces)`)
+	infraChartCmd.Flags().BoolVar(&ic.CRDAggregation, "crd-aggregation", true, "generate an aggregate-to-admin/edit ClusterRole granting access to the chart's Namespaced CRD resources (cert-manager-edit pattern). Independent of --pipeline-sa.")
 }

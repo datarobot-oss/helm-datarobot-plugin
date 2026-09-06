@@ -49,6 +49,41 @@ func TestCommandInfraChartDefaultOutputName(t *testing.T) {
 	assert.NoError(t, statErr)
 }
 
+func TestCommandInfraChartPipelineSA(t *testing.T) {
+	tmp := t.TempDir()
+	out := filepath.Join(tmp, "infra.tgz")
+	_, err := executeCommand(rootCmd, "infra-chart ../tests/charts/crd-test-chart -o "+out+" --pipeline-sa pipeline --namespace dr --release-name datarobot")
+	assert.NoError(t, err)
+
+	rendered, err := render_helper.RenderChart(out, []string{}, []string{}, nil)
+	assert.NoError(t, err)
+	assert.Contains(t, rendered, "kind: ServiceAccount")
+	assert.Contains(t, rendered, "name: pipeline")
+	assert.Contains(t, rendered, "datarobot-pipeline-cluster-read")
+}
+
+func TestCommandInfraChartCRDAggregationDefaultOn(t *testing.T) {
+	tmp := t.TempDir()
+	out := filepath.Join(tmp, "infra.tgz")
+	_, err := executeCommand(rootCmd, "infra-chart ../tests/charts/crd-test-chart -o "+out)
+	assert.NoError(t, err)
+	rendered, err := render_helper.RenderChart(out, []string{}, []string{}, nil)
+	assert.NoError(t, err)
+	// crd-test-chart ships Namespaced CRDs -> aggregate ClusterRole present by default.
+	assert.Contains(t, rendered, "datarobot-crd-edit-aggregate")
+	assert.Contains(t, rendered, "rbac.authorization.k8s.io/aggregate-to-admin")
+}
+
+func TestCommandInfraChartCRDAggregationDisabled(t *testing.T) {
+	tmp := t.TempDir()
+	out := filepath.Join(tmp, "infra.tgz")
+	_, err := executeCommand(rootCmd, "infra-chart ../tests/charts/crd-test-chart -o "+out+" --crd-aggregation=false")
+	assert.NoError(t, err)
+	rendered, err := render_helper.RenderChart(out, []string{}, []string{}, nil)
+	assert.NoError(t, err)
+	assert.NotContains(t, rendered, "datarobot-crd-edit-aggregate")
+}
+
 func TestCommandInfraChartNoResourcesError(t *testing.T) {
 	tmp := t.TempDir()
 	out := filepath.Join(tmp, "infra.tgz")
