@@ -26,7 +26,7 @@ func TestCommandCrdChart(t *testing.T) {
 
 	// Render the GENERATED chart: it must template cleanly (braces escaped)
 	// and yield exactly 2 CRDs and no Deployment/ClusterRole.
-	rendered, err := render_helper.RenderChart(out, []string{}, []string{})
+	rendered, err := render_helper.RenderChart(out, []string{}, []string{}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, strings.Count(rendered, "kind: CustomResourceDefinition"))
 	assert.NotContains(t, rendered, "kind: Deployment")
@@ -41,7 +41,7 @@ func TestCommandCrdChartNoKeep(t *testing.T) {
 	_, err := executeCommand(rootCmd,
 		"infra-chart ../tests/charts/crd-test-chart -o "+out+" --keep-crds=false")
 	assert.NoError(t, err)
-	rendered, err := render_helper.RenderChart(out, []string{}, []string{})
+	rendered, err := render_helper.RenderChart(out, []string{}, []string{}, nil)
 	assert.NoError(t, err)
 	assert.NotContains(t, rendered, "helm.sh/resource-policy: keep")
 }

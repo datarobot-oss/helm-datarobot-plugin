@@ -66,7 +66,7 @@ $ helm datarobot infra-chart datarobot-prime.tgz -o datarobot-infra.tgz
 		forced = append(forced, "global.installCRDs=true",
 			fmt.Sprintf("global.keepCRDs=%t", cc.KeepCRDs))
 
-		manifest, err := render_helper.RenderChartWithOptions(chartPath, cc.ValueFiles, forced, &render_helper.RenderOptions{
+		manifest, err := render_helper.RenderChart(chartPath, cc.ValueFiles, forced, &render_helper.RenderOptions{
 			Namespace:   cc.Namespace,
 			ReleaseName: cc.ReleaseName,
 			KubeVersion: cc.KubeVersion,

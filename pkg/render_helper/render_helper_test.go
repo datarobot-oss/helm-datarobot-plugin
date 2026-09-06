@@ -27,7 +27,7 @@ image:
   tag: stable
 `)()
 
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile}, []string{})
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile}, []string{}, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -85,7 +85,7 @@ resources:
     cpu: 200m
 `)()
 
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, []string{})
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, []string{}, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -144,7 +144,7 @@ resources:
 `)()
 
 	setValues := []string{"replicaCount=3"}
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, setValues)
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{valuesFile1, valuesFile2}, setValues, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -186,7 +186,7 @@ spec:
 // TestRenderChartEmptyFilesInputSet
 func TestRenderChartEmptyFilesInputSet(t *testing.T) {
 	setValues := []string{"replicaCount=3", "image.tag=inputset"}
-	values, err := RenderChart("../../tests/charts/test-chart6/", []string{}, setValues)
+	values, err := RenderChart("../../tests/charts/test-chart6/", []string{}, setValues, nil)
 	assert.NoError(t, err)
 	expected := `---
 # Source: test-chart6/templates/deployment.yaml
@@ -232,7 +232,7 @@ func TestRenderChartWithOptionsNamespaceRelease(t *testing.T) {
 		KubeVersion: "v1.32.0",
 		IncludeCRDs: false,
 	}
-	out, err := RenderChartWithOptions("../../tests/charts/test-chart6/", []string{}, []string{}, opts)
+	out, err := RenderChart("../../tests/charts/test-chart6/", []string{}, []string{}, opts)
 	assert.NoError(t, err)
 	// ReleaseName flows into rendered resource names
 	assert.Contains(t, out, "name: my-release-test-chart6")
@@ -240,7 +240,7 @@ func TestRenderChartWithOptionsNamespaceRelease(t *testing.T) {
 
 func TestRenderChartWrapperUnchanged(t *testing.T) {
 	// Wrapper must still produce test-release names (old default)
-	out, err := RenderChart("../../tests/charts/test-chart6/", []string{}, []string{"image.tag=x"})
+	out, err := RenderChart("../../tests/charts/test-chart6/", []string{}, []string{"image.tag=x"}, nil)
 	assert.NoError(t, err)
 	assert.Contains(t, out, "name: test-release-test-chart6")
 }
