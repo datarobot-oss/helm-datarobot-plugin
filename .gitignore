@@ -13,6 +13,10 @@ tests/registry/certs/*
 # tests/charts Helm charts
 tests/charts/*/Chart.lock
 tests/charts/*/charts/
+# CRD-013: crd-subchart is a hand-written SOURCE fixture (not a vendored helm
+# dependency) used to test per-subchart installCRDs forcing — keep it tracked.
+!tests/charts/crd-test-chart/charts/
+!tests/charts/crd-test-chart/charts/**
 
 # test results
 release_description.md

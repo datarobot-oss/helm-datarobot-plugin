@@ -46,7 +46,19 @@ $ helm datarobot infra-chart datarobot-prime.tgz -o datarobot-infra.tgz
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chartPath := args[0]
 
-		rendered, err := render_helper.RenderChart(chartPath, ic.ValueFiles, ic.Values, &render_helper.RenderOptions{
+		// Force every subchart's CRD emission gate on so a values file / --set
+		// that disables installCRDs (local or global) can't silently ship an
+		// incomplete infra chart. Appended AFTER the user's --set so it wins.
+		forcedCRDs, crdOverrides, err := render_helper.ForceInstallCRDs(chartPath, ic.ValueFiles, ic.Values)
+		if err != nil {
+			return fmt.Errorf("failed to resolve CRD forcing: %w", err)
+		}
+		for _, key := range crdOverrides {
+			cmd.PrintErrf("note: forcing %s=true (was false in your values) so its CRD is included in the infra chart\n", key)
+		}
+		forcedValues := append(append([]string{}, ic.Values...), forcedCRDs...)
+
+		rendered, err := render_helper.RenderChart(chartPath, ic.ValueFiles, forcedValues, &render_helper.RenderOptions{
 			Namespace:    ic.Namespace,
 			ReleaseName:  ic.ReleaseName,
 			KubeVersion:  ic.KubeVersion,
