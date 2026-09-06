@@ -40,3 +40,7 @@ vet:
 lint:
 	@echo "Linting the code..."
 	@golint ./...
+
+limited-install:
+	@echo "Run the limited-privilege install (see scripts/limited-install.sh for required env vars):"
+	@echo "  PRIME_CHART=... INFRA_CHART=... NAMESPACE=... ./scripts/limited-install.sh"

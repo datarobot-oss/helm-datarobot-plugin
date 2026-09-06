@@ -1,0 +1,6 @@
+apiVersion: v2
+name: crd-subchart
+description: Subchart whose CRD is gated by its own local installCRDs (mirrors prime operators)
+type: application
+version: 0.1.0
+appVersion: "1.2.3"
