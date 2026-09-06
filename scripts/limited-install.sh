@@ -38,7 +38,12 @@ KUBECONFIG="${KUBECONFIG_ADMIN}" helm upgrade --install datarobot-infra "${INFRA
   -n "${NAMESPACE}" --create-namespace "${EXTRA[@]+"${EXTRA[@]}"}"
 
 echo "==> [admin] wait for CRDs Established (required for Envoy Gateway)"
-mapfile -t CRDS < <(KUBECONFIG="${KUBECONFIG_ADMIN}" helm get manifest datarobot-infra -n "${NAMESPACE}" \
+# Portable (bash 3.2+, e.g. stock macOS /bin/bash) read loop; avoids
+# bash-4-only array-slurping builtins.
+CRDS=()
+while IFS= read -r crd_name; do
+  CRDS+=("${crd_name}")
+done < <(KUBECONFIG="${KUBECONFIG_ADMIN}" helm get manifest datarobot-infra -n "${NAMESPACE}" \
   | awk '/^kind: CustomResourceDefinition$/{c=1} c&&/^  name:/{print $2; c=0}')
 for crd in "${CRDS[@]}"; do
   echo "    waiting on crd/${crd}"
