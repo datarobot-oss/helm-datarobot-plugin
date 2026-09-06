@@ -24,7 +24,7 @@ type crdChartInput struct {
 var cc crdChartInput
 
 var crdChartCmd = &cobra.Command{
-	Use:          "crd-chart <prime-chart.tgz>",
+	Use:          "infra-chart <prime-chart.tgz>",
 	Short:        "extract CRDs from a chart into a standalone datarobot-infra chart",
 	SilenceUsage: true,
 	Long: strings.Replace(`
@@ -34,7 +34,7 @@ CustomResourceDefinitions into a standalone, installable datarobot-infra chart.
 
 Example:
 '''sh
-$ helm datarobot crd-chart datarobot-prime.tgz -o datarobot-infra.tgz
+$ helm datarobot infra-chart datarobot-prime.tgz -o datarobot-infra.tgz
 '''`, "'", "`", -1),
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

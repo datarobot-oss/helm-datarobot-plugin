@@ -1,4 +1,4 @@
-## helm-datarobot crd-chart
+## helm-datarobot infra-chart
 
 extract CRDs from a chart into a standalone datarobot-infra chart
 
@@ -11,11 +11,11 @@ CustomResourceDefinitions into a standalone, installable datarobot-infra chart.
 
 Example:
 ```sh
-$ helm datarobot crd-chart datarobot-prime.tgz -o datarobot-infra.tgz
+$ helm datarobot infra-chart datarobot-prime.tgz -o datarobot-infra.tgz
 ```
 
 ```
-helm-datarobot crd-chart <prime-chart.tgz> [flags]
+helm-datarobot infra-chart <prime-chart.tgz> [flags]
 ```
 
 ### Options
@@ -23,7 +23,7 @@ helm-datarobot crd-chart <prime-chart.tgz> [flags]
 ```
       --api-versions strings   extra API versions for rendering (can specify multiple)
   -d, --debug                  verbose per-CRD listing
-  -h, --help                   help for crd-chart
+  -h, --help                   help for infra-chart
       --keep-crds              add helm.sh/resource-policy: keep annotation (default true)
       --kube-version string    Helm template KubeVersion (default "v1.32.0")
       --namespace string       render namespace (.Release.Namespace) (default "datarobot")

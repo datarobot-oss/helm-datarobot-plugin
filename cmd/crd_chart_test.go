@@ -14,7 +14,7 @@ import (
 func TestCommandCrdChart(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "crds.tgz")
 	output, err := executeCommand(rootCmd,
-		"crd-chart ../tests/charts/crd-test-chart -o "+out)
+		"infra-chart ../tests/charts/crd-test-chart -o "+out)
 	assert.NoError(t, err)
 	assert.Contains(t, output, "Extracted 2 CRDs")
 
@@ -39,7 +39,7 @@ func TestCommandCrdChart(t *testing.T) {
 func TestCommandCrdChartNoKeep(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "crds.tgz")
 	_, err := executeCommand(rootCmd,
-		"crd-chart ../tests/charts/crd-test-chart -o "+out+" --keep-crds=false")
+		"infra-chart ../tests/charts/crd-test-chart -o "+out+" --keep-crds=false")
 	assert.NoError(t, err)
 	rendered, err := render_helper.RenderChart(out, []string{}, []string{})
 	assert.NoError(t, err)
@@ -49,7 +49,7 @@ func TestCommandCrdChartNoKeep(t *testing.T) {
 func TestCommandCrdChartDefaultOutputName(t *testing.T) {
 	// No -o: default path ./datarobot-infra-<srcVersion>.tgz in cwd.
 	defer os.Remove("datarobot-infra-9.9.9.tgz")
-	output, err := executeCommand(rootCmd, "crd-chart ../tests/charts/crd-test-chart")
+	output, err := executeCommand(rootCmd, "infra-chart ../tests/charts/crd-test-chart")
 	assert.NoError(t, err)
 	assert.Contains(t, output, "Extracted 2 CRDs")
 	_, statErr := os.Stat("datarobot-infra-9.9.9.tgz")
@@ -59,7 +59,7 @@ func TestCommandCrdChartDefaultOutputName(t *testing.T) {
 func TestCommandCrdChartNoCRDsError(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "out.tgz")
 	_, err := executeCommand(rootCmd,
-		"crd-chart ../tests/charts/test-chart6 -o "+out)
+		"infra-chart ../tests/charts/test-chart6 -o "+out)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no CRDs found")
 
