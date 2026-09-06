@@ -225,7 +225,7 @@ spec:
 	assert.Equal(t, expected, values)
 }
 
-func TestRenderChartWithOptionsNamespaceRelease(t *testing.T) {
+func TestRenderChartNamespaceRelease(t *testing.T) {
 	opts := &RenderOptions{
 		Namespace:   "datarobot",
 		ReleaseName: "my-release",

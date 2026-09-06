@@ -14,11 +14,11 @@ import (
 // a no-op (r unchanged, nil error) when metadata/annotations/the key are
 // absent.
 //
-// Ported from pkg/crdchart's StripKeepAnnotation (Phase 1, ticket CRD-001):
-// some source charts bake helm.sh/resource-policy: keep into their CRDs at
-// template time regardless of any --keep-crds flag on this tool. Without this
-// strip step, --keep-crds=false would fail to actually drop the annotation
-// for those charts.
+// Preserves the CRD-001 keep-strip semantics (Phase 1): some source charts
+// bake helm.sh/resource-policy: keep into their CRDs at template time
+// regardless of any --keep-crds flag on this tool. Without this strip step,
+// --keep-crds=false would fail to actually drop the annotation for those
+// charts.
 //
 // Uses a yaml.Node round-trip rather than a map[string]interface{} round-trip
 // so that sibling key order and 2-space indentation are preserved (a plain
