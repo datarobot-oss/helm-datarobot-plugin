@@ -241,6 +241,44 @@ metadata:
 	}
 }
 
+// TestBuildChart_StripsBakedInKeepAnnotation verifies CRD-001: a CRD whose
+// source chart already bakes in helm.sh/resource-policy: keep must have it
+// stripped when KeepCRDs is false, and left in place when KeepCRDs is true.
+func TestBuildChart_StripsBakedInKeepAnnotation(t *testing.T) {
+	crd := manifest.Resource{
+		Kind:       "CustomResourceDefinition",
+		APIVersion: "apiextensions.k8s.io/v1",
+		Name:       "foos.example.com",
+		RawYAML: strings.TrimSpace(`
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: foos.example.com
+  annotations:
+    helm.sh/resource-policy: keep`),
+	}
+
+	// KeepCRDs: false — the baked-in annotation must be stripped.
+	c, err := BuildChart([]manifest.Resource{crd}, ChartOptions{Name: "x", Version: "1.0.0", KeepCRDs: false})
+	if err != nil {
+		t.Fatalf("BuildChart error: %v", err)
+	}
+	content := string(c.Templates[0].Data)
+	if strings.Contains(content, "resource-policy: keep") {
+		t.Errorf("baked-in keep annotation not stripped with KeepCRDs=false:\n%s", content)
+	}
+
+	// KeepCRDs: true — the annotation must still be present.
+	c2, err := BuildChart([]manifest.Resource{crd}, ChartOptions{Name: "x", Version: "1.0.0", KeepCRDs: true})
+	if err != nil {
+		t.Fatalf("BuildChart error: %v", err)
+	}
+	content2 := string(c2.Templates[0].Data)
+	if !strings.Contains(content2, "resource-policy: keep") {
+		t.Errorf("keep annotation missing with KeepCRDs=true:\n%s", content2)
+	}
+}
+
 // TestBuildChart_CRDAggregation verifies crd-aggregation.yaml is present iff CRDAggregation non-empty.
 func TestBuildChart_CRDAggregation(t *testing.T) {
 	r := makeResource("ClusterRole", "role-a")

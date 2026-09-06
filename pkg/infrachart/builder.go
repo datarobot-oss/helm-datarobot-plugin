@@ -37,12 +37,23 @@ func BuildChart(resources []manifest.Resource, opts ChartOptions) (*chart.Chart,
 		if err != nil {
 			return nil, fmt.Errorf("strip hook annotations for %s/%s: %w", r.Kind, r.Name, err)
 		}
-		if opts.KeepCRDs && stripped.Kind == "CustomResourceDefinition" {
-			kept, err := stripped.WithAnnotation("helm.sh/resource-policy", "keep")
-			if err != nil {
-				return nil, fmt.Errorf("add keep annotation to %s: %w", stripped.Name, err)
+		if stripped.Kind == "CustomResourceDefinition" {
+			if opts.KeepCRDs {
+				kept, err := stripped.WithAnnotation("helm.sh/resource-policy", "keep")
+				if err != nil {
+					return nil, fmt.Errorf("add keep annotation to %s: %w", stripped.Name, err)
+				}
+				stripped = kept
+			} else {
+				// CRD-001: some source charts bake helm.sh/resource-policy:
+				// keep into their CRDs regardless of our flags. Strip it so
+				// --keep-crds=false is honored even for those charts.
+				unkept, err := manifest.StripKeepAnnotation(stripped)
+				if err != nil {
+					return nil, fmt.Errorf("strip keep annotation from %s: %w", stripped.Name, err)
+				}
+				stripped = unkept
 			}
-			stripped = kept
 		}
 		processed = append(processed, stripped)
 	}
