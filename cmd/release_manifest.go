@@ -69,15 +69,10 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 		archiveName := image.Name + ARCHIVE_EXT
 		if existing, exists := result[archiveName]; exists {
 			if existing.Source == rmi.Source {
-				// Same image (name + tag) already recorded; nothing to add.
-				continue
+				continue // identical image already recorded
 			}
-			// Same declaration name but a different image/tag. Multiple
-			// subcharts may legitimately ship different versions of the same
-			// image (e.g. execution-environments and execution-environments-mmm
-			// both pinning environmentscli at different tags), so keep both by
-			// disambiguating the archive name with the tag instead of aborting
-			// or silently overwriting the earlier entry.
+			// Same name, different tag: subcharts may legitimately ship
+			// different versions, so keep both by tagging the archive name.
 			if skipDuplicated {
 				fmt.Printf("[Warning] Duplicate image name %q: skipping %s\n", image.Name, rmi.Source)
 				continue
@@ -93,9 +88,7 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 	return result, nil
 }
 
-// sanitizeArchiveTag makes an image tag safe to embed in an archive file name
-// by replacing characters that are not valid in a path segment (e.g. the ':'
-// and '@' from digest references).
+// sanitizeArchiveTag makes a tag safe to embed in an archive file name.
 func sanitizeArchiveTag(tag string) string {
 	replacer := strings.NewReplacer(":", "-", "/", "-", "@", "-")
 	return replacer.Replace(tag)

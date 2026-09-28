@@ -68,10 +68,8 @@ func TestCommandReleaseManifest(t *testing.T) {
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("Test same image name with different tags", func(t *testing.T) {
-		// Two subcharts can pin the same image name at different tags (e.g.
-		// environmentscli in execution-environments vs execution-environments-mmm).
-		// Both versions must be kept and disambiguated by tag rather than the
-		// command aborting with "Duplicate image name".
+		// Same image name at different tags must keep both, disambiguated
+		// by tag, instead of aborting with "Duplicate image name".
 		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart4 -a \"custom/images-samename-difftag\"")
 		assert.NoError(t, err)
 		expectedOutput := `images:
