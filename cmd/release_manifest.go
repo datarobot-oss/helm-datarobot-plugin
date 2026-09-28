@@ -67,20 +67,38 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 		}
 
 		archiveName := image.Name + ARCHIVE_EXT
-		_, archiveNameExists := result[archiveName]
-		if archiveNameExists {
-			if skipDuplicated {
-				fmt.Printf("[Warning] Duplicate image name: %s\n", image.Name)
-			} else {
-				err := fmt.Errorf("Duplicate image name: %s", image.Name)
-				return nil, err
+		if existing, exists := result[archiveName]; exists {
+			if existing.Source == rmi.Source {
+				// Same image (name + tag) already recorded; nothing to add.
+				continue
 			}
-
+			// Same declaration name but a different image/tag. Multiple
+			// subcharts may legitimately ship different versions of the same
+			// image (e.g. execution-environments and execution-environments-mmm
+			// both pinning environmentscli at different tags), so keep both by
+			// disambiguating the archive name with the tag instead of aborting
+			// or silently overwriting the earlier entry.
+			if skipDuplicated {
+				fmt.Printf("[Warning] Duplicate image name %q: skipping %s\n", image.Name, rmi.Source)
+				continue
+			}
+			archiveName = fmt.Sprintf("%s-%s%s", image.Name, sanitizeArchiveTag(rmi.Tag), ARCHIVE_EXT)
+			if other, taken := result[archiveName]; taken && other.Source != rmi.Source {
+				return nil, fmt.Errorf("Duplicate image name: %s (tag %s collides)", image.Name, rmi.Tag)
+			}
 		}
 
 		result[archiveName] = rmi
 	}
 	return result, nil
+}
+
+// sanitizeArchiveTag makes an image tag safe to embed in an archive file name
+// by replacing characters that are not valid in a path segment (e.g. the ':'
+// and '@' from digest references).
+func sanitizeArchiveTag(tag string) string {
+	replacer := strings.NewReplacer(":", "-", "/", "-", "@", "-")
+	return replacer.Replace(tag)
 }
 
 // It fetches the image configuration metadata without pulling the full image.

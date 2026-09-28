@@ -67,6 +67,24 @@ func TestCommandReleaseManifest(t *testing.T) {
     tag: 4.0.0`
 		assert.Equal(t, expectedOutput, output)
 	})
+	t.Run("Test same image name with different tags", func(t *testing.T) {
+		// Two subcharts can pin the same image name at different tags (e.g.
+		// environmentscli in execution-environments vs execution-environments-mmm).
+		// Both versions must be kept and disambiguated by tag rather than the
+		// command aborting with "Duplicate image name".
+		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart4 -a \"custom/images-samename-difftag\"")
+		assert.NoError(t, err)
+		expectedOutput := `images:
+  environmentscli-2.0.0.tar.zst:
+    source: docker.io/datarobotdev/environmentscli:2.0.0
+    name: docker.io/datarobotdev/environmentscli
+    tag: 2.0.0
+  environmentscli.tar.zst:
+    source: docker.io/datarobotdev/environmentscli:1.0.0
+    name: docker.io/datarobotdev/environmentscli
+    tag: 1.0.0`
+		assert.Equal(t, expectedOutput, output)
+	})
 	t.Run("selected-labels", func(t *testing.T) {
 		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart6  -a bitnamilegacy -l org.opencontainers.image.title -l org.opencontainers.image.base.name ")
 		assert.NoError(t, err)
