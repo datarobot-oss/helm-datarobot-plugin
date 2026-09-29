@@ -77,7 +77,12 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 				fmt.Printf("[Warning] Duplicate image name %q: skipping %s\n", image.Name, rmi.Source)
 				continue
 			}
-			archiveName = fmt.Sprintf("%s-%s%s", image.Name, sanitizeArchiveTag(rmi.Tag), ARCHIVE_EXT)
+			// Re-key the first copy too so the output doesn't depend on chart order.
+			delete(result, archiveName)
+			result[taggedArchiveName(image.Name, existing.Tag)] = existing
+		}
+		if hasTaggedSibling(result, image.Name) {
+			archiveName = taggedArchiveName(image.Name, rmi.Tag)
 			if other, taken := result[archiveName]; taken && other.Source != rmi.Source {
 				return nil, fmt.Errorf("Duplicate image name: %s (tag %s collides)", image.Name, rmi.Tag)
 			}
