@@ -73,14 +73,14 @@ func TestCommandReleaseManifest(t *testing.T) {
 		output, err := executeCommand(rootCmd, "release-manifest ../tests/charts/test-chart4 -a \"custom/images-samename-difftag\"")
 		assert.NoError(t, err)
 		expectedOutput := `images:
+  environmentscli-1.0.0.tar.zst:
+    source: docker.io/datarobotdev/environmentscli:1.0.0
+    name: docker.io/datarobotdev/environmentscli
+    tag: 1.0.0
   environmentscli-2.0.0.tar.zst:
     source: docker.io/datarobotdev/environmentscli:2.0.0
     name: docker.io/datarobotdev/environmentscli
-    tag: 2.0.0
-  environmentscli.tar.zst:
-    source: docker.io/datarobotdev/environmentscli:1.0.0
-    name: docker.io/datarobotdev/environmentscli
-    tag: 1.0.0`
+    tag: 2.0.0`
 		assert.Equal(t, expectedOutput, output)
 	})
 	t.Run("selected-labels", func(t *testing.T) {
