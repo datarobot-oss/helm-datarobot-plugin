@@ -184,6 +184,10 @@ var releaseManifestCmd = &cobra.Command{
 Subcommand 'release-manifest' is conceptually similar to subcommand 'images'.
 it supports more than 1 chart, so we can produce a single manifest and other umbrella charts.
 
+Archives are keyed '<name>.tar.zst'. When the same image name appears with different tags,
+each copy is keyed '<name>-<tag>.tar.zst' instead. With --skip-duplicated the first copy is kept
+and later ones are skipped with a warning.
+
 Example:
 '''sh
 $ helm datarobot release-manifest tests/charts/test-chart1/
@@ -228,7 +232,7 @@ var addLabels []string
 func init() {
 	rootCmd.AddCommand(releaseManifestCmd)
 	releaseManifestCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	releaseManifestCmd.Flags().BoolVarP(&skipDuplicated, "skip-duplicated", "", false, "skip duplicated images")
+	releaseManifestCmd.Flags().BoolVarP(&skipDuplicated, "skip-duplicated", "", false, "keep the first image for a duplicated name and skip the rest")
 	releaseManifestCmd.Flags().BoolVarP(&addAllLabels, "all-labels", "", false, "add all labes")
 	releaseManifestCmd.Flags().StringArrayVarP(&addLabels, "label", "l", []string{}, "Specify labels (can be used multiple times)")
 }
