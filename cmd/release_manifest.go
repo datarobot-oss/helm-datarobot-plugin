@@ -67,20 +67,50 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 		}
 
 		archiveName := image.Name + ARCHIVE_EXT
-		_, archiveNameExists := result[archiveName]
-		if archiveNameExists {
-			if skipDuplicated {
-				fmt.Printf("[Warning] Duplicate image name: %s\n", image.Name)
-			} else {
-				err := fmt.Errorf("Duplicate image name: %s", image.Name)
-				return nil, err
+		if existing, exists := result[archiveName]; exists {
+			if existing.Source == rmi.Source {
+				continue // identical image already recorded
 			}
-
+			// Same name, different tag: subcharts may legitimately ship
+			// different versions, so keep both by tagging the archive name.
+			if skipDuplicated {
+				fmt.Printf("[Warning] Duplicate image name %q: skipping %s\n", image.Name, rmi.Source)
+				continue
+			}
+			// Re-key the first copy too so the output doesn't depend on chart order.
+			delete(result, archiveName)
+			result[taggedArchiveName(image.Name, existing.Tag)] = existing
+		}
+		if hasTaggedSibling(result, image.Name) {
+			archiveName = taggedArchiveName(image.Name, rmi.Tag)
+			if other, taken := result[archiveName]; taken && other.Source != rmi.Source {
+				return nil, fmt.Errorf("Duplicate image name: %s (tag %s collides)", image.Name, rmi.Tag)
+			}
 		}
 
 		result[archiveName] = rmi
 	}
 	return result, nil
+}
+
+func taggedArchiveName(name, tag string) string {
+	return fmt.Sprintf("%s-%s%s", name, sanitizeArchiveTag(tag), ARCHIVE_EXT)
+}
+
+// hasTaggedSibling reports whether name was already split into <name>-<tag> archives.
+func hasTaggedSibling(result map[string]releaseManifestImage, name string) bool {
+	for archiveName, img := range result {
+		if archiveName == taggedArchiveName(name, img.Tag) {
+			return true
+		}
+	}
+	return false
+}
+
+// sanitizeArchiveTag makes a tag safe to embed in an archive file name.
+func sanitizeArchiveTag(tag string) string {
+	replacer := strings.NewReplacer(":", "-", "/", "-", "@", "-")
+	return replacer.Replace(tag)
 }
 
 // It fetches the image configuration metadata without pulling the full image.
@@ -154,6 +184,10 @@ var releaseManifestCmd = &cobra.Command{
 Subcommand 'release-manifest' is conceptually similar to subcommand 'images'.
 it supports more than 1 chart, so we can produce a single manifest and other umbrella charts.
 
+Archives are keyed '<name>.tar.zst'. When the same image name appears with different tags,
+each copy is keyed '<name>-<tag>.tar.zst' instead. With --skip-duplicated the first copy is kept
+and later ones are skipped with a warning.
+
 Example:
 '''sh
 $ helm datarobot release-manifest tests/charts/test-chart1/
@@ -198,7 +232,7 @@ var addLabels []string
 func init() {
 	rootCmd.AddCommand(releaseManifestCmd)
 	releaseManifestCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
-	releaseManifestCmd.Flags().BoolVarP(&skipDuplicated, "skip-duplicated", "", false, "skip duplicated images")
+	releaseManifestCmd.Flags().BoolVarP(&skipDuplicated, "skip-duplicated", "", false, "keep the first image for a duplicated name and skip the rest")
 	releaseManifestCmd.Flags().BoolVarP(&addAllLabels, "all-labels", "", false, "add all labes")
 	releaseManifestCmd.Flags().StringArrayVarP(&addLabels, "label", "l", []string{}, "Specify labels (can be used multiple times)")
 }

@@ -34,6 +34,12 @@ annotations:
     - name: test-image4
       image: docker.io/datarobotdev/test-image4:4.0.0
 
+  custom/images-samename-difftag: |
+    - name: environmentscli
+      image: docker.io/datarobotdev/environmentscli:1.0.0
+    - name: environmentscli
+      image: docker.io/datarobotdev/environmentscli:2.0.0
+
   custom/loadimages: |
     - name: test-image
       image: docker.io/alpine/curl:8.9.1

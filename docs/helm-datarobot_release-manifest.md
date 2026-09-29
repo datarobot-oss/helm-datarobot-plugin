@@ -8,6 +8,10 @@ release-manifest
 Subcommand `release-manifest` is conceptually similar to subcommand `images`.
 it supports more than 1 chart, so we can produce a single manifest and other umbrella charts.
 
+Archives are keyed `<name>.tar.zst`. When the same image name appears with different tags,
+each copy is keyed `<name>-<tag>.tar.zst` instead. With --skip-duplicated the first copy is kept
+and later ones are skipped with a warning.
+
 Example:
 ```sh
 $ helm datarobot release-manifest tests/charts/test-chart1/
@@ -39,7 +43,7 @@ helm-datarobot release-manifest [flags]
   -a, --annotation string   annotation to lookup (default "datarobot.com/images")
   -h, --help                help for release-manifest
   -l, --label stringArray   Specify labels (can be used multiple times)
-      --skip-duplicated     skip duplicated images
+      --skip-duplicated     keep the first image for a duplicated name and skip the rest
 ```
 
 ### SEE ALSO
