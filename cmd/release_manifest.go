@@ -88,6 +88,20 @@ func getReleaseManifest(images []chartutil.DatarobotImageDeclaration, skipDuplic
 	return result, nil
 }
 
+func taggedArchiveName(name, tag string) string {
+	return fmt.Sprintf("%s-%s%s", name, sanitizeArchiveTag(tag), ARCHIVE_EXT)
+}
+
+// hasTaggedSibling reports whether name was already split into <name>-<tag> archives.
+func hasTaggedSibling(result map[string]releaseManifestImage, name string) bool {
+	for archiveName, img := range result {
+		if archiveName == taggedArchiveName(name, img.Tag) {
+			return true
+		}
+	}
+	return false
+}
+
 // sanitizeArchiveTag makes a tag safe to embed in an archive file name.
 func sanitizeArchiveTag(tag string) string {
 	replacer := strings.NewReplacer(":", "-", "/", "-", "@", "-")
