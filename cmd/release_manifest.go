@@ -233,6 +233,6 @@ func init() {
 	rootCmd.AddCommand(releaseManifestCmd)
 	releaseManifestCmd.Flags().StringVarP(&annotation, "annotation", "a", "datarobot.com/images", "annotation to lookup")
 	releaseManifestCmd.Flags().BoolVarP(&skipDuplicated, "skip-duplicated", "", false, "keep the first image for a duplicated name and skip the rest")
-	releaseManifestCmd.Flags().BoolVarP(&addAllLabels, "all-labels", "", false, "add all labes")
+	releaseManifestCmd.Flags().BoolVarP(&addAllLabels, "all-labels", "", false, "add all labels")
 	releaseManifestCmd.Flags().StringArrayVarP(&addLabels, "label", "l", []string{}, "Specify labels (can be used multiple times)")
 }
