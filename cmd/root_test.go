@@ -29,11 +29,33 @@ func executeCommand(root *cobra.Command, cmd string) (output string, err error) 
 func resetSubCommandFlagValues(root *cobra.Command) {
 	for _, c := range root.Commands() {
 		c.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Changed {
-				f.Value.Set(f.DefValue)
-				f.Changed = false
+			if !f.Changed {
+				return
 			}
+			// Slice/array flags (e.g. --set) must be Replace()d back to their
+			// default: their Set() appends once the value is marked changed, so
+			// Set(DefValue) would push the literal "[]" onto the slice and the
+			// next test's --set data would fail to parse.
+			if sv, ok := f.Value.(pflag.SliceValue); ok {
+				sv.Replace(parseSliceDefault(f.DefValue))
+			} else {
+				f.Value.Set(f.DefValue)
+			}
+			f.Changed = false
 		})
 		resetSubCommandFlagValues(c)
 	}
+}
+
+// parseSliceDefault turns pflag's "[a,b,c]" DefValue rendering back into the
+// slice of defaults, so resetting a changed slice flag restores its real
+// default (empty for --set, non-empty for e.g. --cluster-read-kinds).
+func parseSliceDefault(def string) []string {
+	def = strings.TrimSpace(def)
+	def = strings.TrimPrefix(def, "[")
+	def = strings.TrimSuffix(def, "]")
+	if def == "" {
+		return []string{}
+	}
+	return strings.Split(def, ",")
 }

@@ -4,3 +4,7 @@ description: Fixture with CRDs in templates/ and crds/, plus non-CRD noise
 type: application
 version: 9.9.9
 appVersion: "1.2.3"
+dependencies:
+  - name: crd-subchart
+    version: 0.1.0
+    condition: crd-subchart.enabled

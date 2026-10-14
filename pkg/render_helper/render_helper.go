@@ -2,6 +2,7 @@ package render_helper
 
 import (
 	"fmt"
+	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -11,48 +12,49 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 )
 
+// RenderOptions controls how a chart is rendered. If nil is passed to RenderChart, defaultOptions() is used.
 type RenderOptions struct {
-	Namespace   string
-	ReleaseName string
-	KubeVersion string
-	IncludeCRDs bool
-	APIVersions []string
+	Namespace    string
+	ReleaseName  string
+	KubeVersion  string
+	IncludeCRDs  bool
+	APIVersions  []string
+	IncludeHooks bool // when true, hook manifests are appended to the returned output
 }
 
-// RenderChart preserves the original behavior as a thin wrapper.
-func RenderChart(chartPath string, valueFiles []string, Values []string) (string, error) {
-	return RenderChartWithOptions(chartPath, valueFiles, Values, &RenderOptions{
-		Namespace:   "test",
-		ReleaseName: "test-release",
-		KubeVersion: "v1.27.0",
-		IncludeCRDs: false,
-	})
-}
-
-func RenderChartWithOptions(chartPath string, valueFiles, Values []string, opts *RenderOptions) (string, error) {
-	if opts == nil {
-		opts = &RenderOptions{}
+func defaultOptions() *RenderOptions {
+	return &RenderOptions{
+		Namespace:    "test",
+		ReleaseName:  "test-release",
+		KubeVersion:  "v1.27.0",
+		IncludeCRDs:  false,
+		APIVersions:  nil,
+		IncludeHooks: false,
 	}
+}
+
+func RenderChart(chartPath string, valueFiles []string, Values []string, opts *RenderOptions) (string, error) {
+	if opts == nil {
+		opts = defaultOptions()
+	}
+
 	client := action.NewInstall(&action.Configuration{})
 	client.ClientOnly = true
 	client.DryRun = true
-	client.DisableHooks = true
 	client.ReleaseName = opts.ReleaseName
-	client.Namespace = opts.Namespace
 	client.IncludeCRDs = opts.IncludeCRDs
-	if len(opts.APIVersions) > 0 {
-		client.APIVersions = chartutil.VersionSet(opts.APIVersions)
-	}
+	client.Namespace = opts.Namespace
+	client.DisableHooks = !opts.IncludeHooks
 
-	kubeVersion := opts.KubeVersion
-	if kubeVersion == "" {
-		kubeVersion = "v1.27.0"
-	}
-	parsedKubeVersion, err := chartutil.ParseKubeVersion(kubeVersion)
+	parsedKubeVersion, err := chartutil.ParseKubeVersion(opts.KubeVersion)
 	if err != nil {
 		return "", fmt.Errorf("invalid kube version: %s", err)
 	}
 	client.KubeVersion = parsedKubeVersion
+
+	if len(opts.APIVersions) > 0 {
+		client.APIVersions = opts.APIVersions
+	}
 
 	valueOpts := &values.Options{
 		ValueFiles: valueFiles,
@@ -66,15 +68,30 @@ func RenderChartWithOptions(chartPath string, valueFiles, Values []string, opts 
 
 	var settings = cli.New()
 	p := getter.All(settings)
-	vals, err := valueOpts.MergeValues(p)
+	values, err := valueOpts.MergeValues(p)
 	if err != nil {
 		return "", err
 	}
 
-	rel, err := client.Run(loadedChart, vals)
+	// Render chart.
+	rel, err := client.Run(loadedChart, values)
 	if err != nil {
 		return "", fmt.Errorf("could not render helm chart correctly: %w", err)
 	}
 
-	return rel.Manifest, nil
+	out := rel.Manifest
+
+	if opts.IncludeHooks && rel.Hooks != nil {
+		var hookParts []string
+		for _, h := range rel.Hooks {
+			if strings.TrimSpace(h.Manifest) != "" {
+				hookParts = append(hookParts, h.Manifest)
+			}
+		}
+		if len(hookParts) > 0 {
+			out = out + "\n---\n" + strings.Join(hookParts, "\n---\n")
+		}
+	}
+
+	return out, nil
 }
