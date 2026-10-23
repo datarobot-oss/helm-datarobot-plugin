@@ -119,6 +119,24 @@ func IsUpgradeVersionSupported(versions, targetVersion string) bool {
 	return false
 }
 
+// FilterUpgradeImages skips upgrade-only images (group "upgrade") unless they are requested.
+// With upgradeFrom set, only images whose upgrade_version lists that version (or have none) are kept.
+// With includeUpgrade set, all images are kept. upgradeFrom takes precedence over includeUpgrade.
+func FilterUpgradeImages(images []dr_chartutil.DatarobotImageDeclaration, includeUpgrade bool, upgradeFrom string) []dr_chartutil.DatarobotImageDeclaration {
+	filteredImages := make([]dr_chartutil.DatarobotImageDeclaration, 0, len(images))
+	for _, img := range images {
+		switch {
+		case upgradeFrom != "":
+			if img.UpgradeVersion == "" || IsUpgradeVersionSupported(img.UpgradeVersion, upgradeFrom) {
+				filteredImages = append(filteredImages, img)
+			}
+		case includeUpgrade || img.Group != "upgrade":
+			filteredImages = append(filteredImages, img)
+		}
+	}
+	return filteredImages
+}
+
 func ExtractImagesFromManifest(manifest string) ([]string, error) {
 	var manifestImages []string
 

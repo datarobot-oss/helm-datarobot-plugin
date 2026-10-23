@@ -4,6 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	dr_chartutil "github.com/datarobot-oss/helm-datarobot-plugin/pkg/chartutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetTransport(t *testing.T) {
@@ -113,5 +116,37 @@ func TestIsUpgradeVersionSupported(t *testing.T) {
 		if result != tt.expected {
 			t.Errorf("IsUpgradeVersionSupported(%q, %q) = %v; want %v", tt.versions, tt.targetVersion, result, tt.expected)
 		}
+	}
+}
+
+func TestFilterUpgradeImages(t *testing.T) {
+	images := []dr_chartutil.DatarobotImageDeclaration{
+		{Name: "regular"},
+		{Name: "upgrade-versioned", Group: "upgrade", UpgradeVersion: "9.0,10.0"},
+		{Name: "upgrade-unversioned", Group: "upgrade"},
+		{Name: "versioned-no-group", UpgradeVersion: "9.0"},
+	}
+
+	tests := []struct {
+		name           string
+		includeUpgrade bool
+		upgradeFrom    string
+		expected       []string
+	}{
+		{"default skips upgrade group", false, "", []string{"regular", "versioned-no-group"}},
+		{"upgrade includes everything", true, "", []string{"regular", "upgrade-versioned", "upgrade-unversioned", "versioned-no-group"}},
+		{"upgrade-from match", false, "10.0", []string{"regular", "upgrade-versioned", "upgrade-unversioned"}},
+		{"upgrade-from no match", false, "11.0", []string{"regular", "upgrade-unversioned"}},
+		{"upgrade-from takes precedence over upgrade", true, "11.0", []string{"regular", "upgrade-unversioned"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			names := make([]string, 0)
+			for _, img := range FilterUpgradeImages(images, tt.includeUpgrade, tt.upgradeFrom) {
+				names = append(names, img.Name)
+			}
+			assert.Equal(t, tt.expected, names)
+		})
 	}
 }
