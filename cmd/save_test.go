@@ -117,10 +117,29 @@ Skipping image: docker.io/alpine/curl:8.9.2
 		assert.NotContains(t, output, "Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0")
 	})
 
-	t.Run("no-upgrade", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart7 -a datarobot.com/images --no-upgrade  --dry-run --output "+SAVE_TEST_ARCHIVE)
+	t.Run("upgrade-skipped-by-default", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart7 -a datarobot.com/images --dry-run --output "+SAVE_TEST_ARCHIVE)
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Dry-Run] Pulling image: docker.io/datarobotdev/test-image1:1.0.0")
+		assert.NotContains(t, output, "Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("upgrade", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart7 -a datarobot.com/images --upgrade --dry-run --output "+SAVE_TEST_ARCHIVE)
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("upgrade-from-overrides-upgrade", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart7 -a datarobot.com/images --upgrade --upgrade-from 11.0 --dry-run --output "+SAVE_TEST_ARCHIVE)
 		assert.NoError(t, err)
 		assert.NotContains(t, output, "Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("no-upgrade-is-ignored", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "save ../tests/charts/test-chart7 -a datarobot.com/images --no-upgrade --upgrade-from 10.0 --dry-run --output "+SAVE_TEST_ARCHIVE)
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Dry-Run] Pulling image: docker.io/alpine/curl:8.10.0")
 	})
 
 	t.Run("wrong-level", func(t *testing.T) {

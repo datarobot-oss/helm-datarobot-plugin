@@ -55,8 +55,11 @@ jobs:
         run: |
           echo $NEXT_VERSION
           git add .
-          git commit -am "[bot] bump version $NEXT_VERSION" --signoff
-          git push --force
+          # Nothing to commit when the version was set manually in plugin.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "[bot] bump version $NEXT_VERSION" --signoff
+            git push --force
+          fi
           git tag $NEXT_VERSION
 
       - uses: goreleaser/goreleaser-action@v6          # run goreleaser

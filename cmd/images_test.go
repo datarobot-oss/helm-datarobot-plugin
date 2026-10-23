@@ -33,10 +33,36 @@ func TestCommandImages(t *testing.T) {
 		assert.NotContains(t, output, "docker.io/alpine/curl:8.10.0")
 	})
 
-	t.Run("no-upgrade", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "image ../tests/charts/test-chart7 -a datarobot.com/images --no-upgrade")
+	t.Run("upgrade-skipped-by-default", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "image ../tests/charts/test-chart7 -a datarobot.com/images")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "docker.io/datarobotdev/test-image1:1.0.0")
+		assert.NotContains(t, output, "docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("upgrade", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "image ../tests/charts/test-chart7 -a datarobot.com/images --upgrade")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("upgrade-from-overrides-upgrade", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "image ../tests/charts/test-chart7 -a datarobot.com/images --upgrade --upgrade-from 11.0")
 		assert.NoError(t, err)
 		assert.NotContains(t, output, "docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("no-upgrade-is-ignored", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "image ../tests/charts/test-chart7 -a datarobot.com/images --no-upgrade --upgrade-from 10.0")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("no-upgrade-hidden-from-help", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "image --help")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "--upgrade-from")
+		assert.NotContains(t, output, "--no-upgrade")
 	})
 
 }

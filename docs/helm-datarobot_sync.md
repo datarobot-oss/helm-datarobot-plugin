@@ -40,7 +40,6 @@ helm-datarobot sync [flags]
   -h, --help                     help for sync
   -i, --insecure                 Skip server certificate verification
   -K, --key string               Path to the client key
-      --no-upgrade               Skip all images with the upgrade notation
       --overwrite                Overwrite existing images
   -p, --password string          pass to auth
       --prefix string            append prefix on repo name
@@ -52,7 +51,8 @@ helm-datarobot sync [flags]
       --skip-image stringArray   Specify which image should be skipped (can be used multiple times)
       --suffix string            append suffix on repo name
   -t, --token string             pass to auth
-      --upgrade-from string      version to upgrade from
+      --upgrade                  include all upgrade-only images
+      --upgrade-from string      include only the upgrade-only images needed to upgrade from this version (takes precedence over --upgrade)
   -u, --username string          username to auth
 ```
 

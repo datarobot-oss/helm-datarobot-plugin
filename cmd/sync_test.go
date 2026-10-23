@@ -129,10 +129,29 @@ Skipping image: docker.io/alpine/curl:8.9.2
 		assert.NotContains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
 	})
 
-	t.Run("no-upgrade", func(t *testing.T) {
-		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images --no-upgrade")
+	t.Run("upgrade-skipped-by-default", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Pulling image: docker.io/datarobotdev/test-image1:1.0.0")
+		assert.NotContains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("upgrade", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images --upgrade")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("upgrade-from-overrides-upgrade", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images --upgrade --upgrade-from 11.0")
 		assert.NoError(t, err)
 		assert.NotContains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
+	})
+
+	t.Run("no-upgrade-is-ignored", func(t *testing.T) {
+		output, err := executeCommand(rootCmd, "sync ../tests/charts/test-chart7 -r registry.example.com --dry-run -a datarobot.com/images --no-upgrade --upgrade-from 10.0")
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Pulling image: docker.io/alpine/curl:8.10.0")
 	})
 
 	t.Run("local-registry-insecure", func(t *testing.T) {

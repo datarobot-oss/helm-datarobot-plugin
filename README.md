@@ -65,6 +65,24 @@ Flags:
   -h, --help   help for plugin
 ```
 
+## Breaking changes in 1.0
+
+`images`, `save` and `sync` now skip upgrade-only images (images with
+`group: upgrade`) by default. These images are needed only when upgrading
+from older releases. To include them:
+
+* `--upgrade` includes all upgrade-only images. This matches the default
+  behavior before 1.0.
+* `--upgrade-from X.Y` includes only the upgrade-only images needed to upgrade
+  from version `X.Y`. It takes precedence over `--upgrade`.
+
+```sh
+helm datarobot sync tests/charts/test-chart1/ -r registry.example.com --upgrade-from 10.0
+```
+
+The `--no-upgrade` flag is now a no-op and is kept only so existing scripts
+keep working.
+
 ## Documentation
 
 please check [here](./docs/helm-datarobot.md)

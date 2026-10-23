@@ -10,7 +10,17 @@ import (
 
 var annotation string
 var upgradeFrom string
-var noUpgrade bool
+var upgrade bool
+
+// addUpgradeFlags registers the flags that control which upgrade-only images are included.
+func addUpgradeFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolVar(&upgrade, "upgrade", false, "include all upgrade-only images")
+	cmd.Flags().StringVar(&upgradeFrom, "upgrade-from", "", "include only the upgrade-only images needed to upgrade from this version (takes precedence over --upgrade)")
+	// --no-upgrade is the default behavior since 1.0; the flag is kept so existing scripts don't break.
+	var noUpgrade bool
+	cmd.Flags().BoolVar(&noUpgrade, "no-upgrade", false, "no-op, upgrade-only images are skipped by default")
+	cmd.Flags().MarkHidden("no-upgrade")
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "helm-datarobot",
